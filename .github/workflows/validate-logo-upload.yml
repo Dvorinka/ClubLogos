@@ -1,0 +1,144 @@
+name: Validate Logo Upload
+
+on:
+  pull_request:
+    paths:
+      - 'logos/**'
+      - 'data/logos/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            logos/**
+            data/logos/**
+
+      - name: Validate logo files
+        run: |
+          echo "🔍 Validating logo uploads..."
+          
+          # Check if any files were changed
+          if [ -z "${{ steps.changed-files.outputs.all_changed_files }}" ]; then
+            echo "No logo files changed"
+            exit 0
+          fi
+          
+          HAS_ERROR=0
+          
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "Checking: $file"
+            
+            # Get filename without extension
+            filename=$(basename "$file")
+            filename_no_ext="${filename%.*}"
+            
+            # Check if filename is a valid UUID
+            if ! echo "$filename_no_ext" | grep -qE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; then
+              echo "❌ ERROR: $file - Filename must be a valid UUID"
+              HAS_ERROR=1
+              continue
+            fi
+            
+            # Check file extension
+            extension="${filename##*.}"
+            if [ "$extension" != "svg" ] && [ "$extension" != "png" ]; then
+              echo "❌ ERROR: $file - Only .svg and .png files are allowed"
+              HAS_ERROR=1
+              continue
+            fi
+            
+            # Check if file exists
+            if [ ! -f "$file" ]; then
+              echo "❌ ERROR: $file - File not found"
+              HAS_ERROR=1
+              continue
+            fi
+            
+            echo "✅ PASS: $file"
+          done
+          
+          if [ $HAS_ERROR -eq 1 ]; then
+            echo ""
+            echo "❌ Validation failed. Please fix the errors above."
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All logo files validated successfully!"
+
+      - name: Check PR description for club info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            
+            console.log('🔍 Checking PR description for required information...');
+            
+            // Check for club name
+            const hasClubName = /club[_\s-]?name\s*:?\s*(.+)/i.test(body);
+            const hasClubId = /club[_\s-]?id\s*:?\s*([0-9a-f-]+)/i.test(body);
+            
+            if (!hasClubName) {
+              core.setFailed('❌ PR description must include "Club Name: <name>"');
+              return;
+            }
+            
+            if (!hasClubId) {
+              core.setFailed('❌ PR description must include "Club ID: <uuid>"');
+              return;
+            }
+            
+            // Extract values
+            const clubNameMatch = body.match(/club[_\s-]?name\s*:?\s*(.+)/i);
+            const clubIdMatch = body.match(/club[_\s-]?id\s*:?\s*([0-9a-f-]+)/i);
+            
+            const clubName = clubNameMatch ? clubNameMatch[1].trim() : null;
+            const clubId = clubIdMatch ? clubIdMatch[1].trim() : null;
+            
+            console.log(`✅ Club Name: ${clubName}`);
+            console.log(`✅ Club ID: ${clubId}`);
+            
+            // Validate UUID format
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (!uuidRegex.test(clubId)) {
+              core.setFailed(`❌ Invalid Club ID format: ${clubId}`);
+              return;
+            }
+            
+            console.log('✅ PR description validation passed!');
+
+      - name: Comment on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Logo upload validation passed!\n\n- File format: Valid\n- UUID format: Valid\n- Club information: Present\n\nReady for review and merge.'
+            })
+
+      - name: Reject on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Logo upload validation failed!\n\nPlease ensure:\n1. Filename is a valid UUID\n2. File format is .svg or .png\n3. PR description includes:\n   - Club Name: <name>\n   - Club ID: <uuid>\n\nSee the action logs for details.'
+            })

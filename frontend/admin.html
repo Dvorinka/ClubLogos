@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="cs" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - České Kluby Loga API</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body class="bg-dark-bg text-white min-h-screen">
+  
+  <!-- Navigation -->
+  <nav class="border-b border-dark-border bg-dark-card/50 backdrop-blur-sm sticky top-0 z-50">
+    <div class="container mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <a href="/" class="text-2xl font-bold gradient-text">České Kluby Loga</a>
+        <div class="flex gap-4">
+          <a href="/" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Domů</a>
+          <a href="/api-docs.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">API Docs</a>
+          <a href="/admin.html" class="nav-link px-4 py-2 rounded-lg bg-accent-blue/20 transition-smooth">Admin</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Admin Header -->
+  <header class="border-b border-dark-border bg-dark-card">
+    <div class="container mx-auto px-6 py-8">
+      <h1 class="text-3xl font-bold gradient-text mb-2">Administrace</h1>
+      <p class="text-gray-400">Vyhledejte kluby a nahrajte jejich loga</p>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-6 py-12">
+    
+    <!-- Club Search Section -->
+    <section class="mb-12">
+      <div class="bg-dark-card rounded-xl p-6 border border-dark-border">
+        <h2 class="text-2xl font-bold mb-6">🔍 Vyhledat Klub</h2>
+        
+        <div class="relative mb-6">
+          <input 
+            type="text" 
+            id="clubSearch" 
+            placeholder="Hledat české kluby (např. Sparta, Slavia)..."
+            class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
+          >
+        </div>
+
+        <!-- Search Results -->
+        <div id="searchResults" class="space-y-3">
+          <!-- Výsledky naplněné JavaScriptem -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Upload Section -->
+    <section id="uploadSection" class="hidden">
+      <div class="bg-dark-card rounded-xl p-6 border border-dark-border">
+        <h2 class="text-2xl font-bold mb-6"><span style="font-size: 30px; display: inline-block; vertical-align: middle; line-height: 1;">⬆️</span> Nahrát Logo</h2>
+        <form id="uploadForm" class="space-y-6">
+          
+          <!-- Club UUID (Read-only) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              UUID Klubu <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="clubUuid" 
+              readonly
+              class="w-full bg-dark-bg/50 border border-dark-border rounded-lg px-4 py-3 text-gray-400 cursor-not-allowed"
+            >
+          </div>
+
+          <!-- Club Name (Required) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              Název Klubu <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="clubName" 
+              required
+              placeholder="AC Sparta Praha"
+              class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
+            >
+            <p class="text-xs text-gray-500 mt-1">Povinné: Nahrání bude zamítnuto bez názvu klubu</p>
+          </div>
+
+          <!-- Club Type -->
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">Typ Klubu</label>
+            <select 
+              id="clubType"
+              class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
+            >
+              <option value="football">Fotbal</option>
+              <option value="futsal">Futsal</option>
+            </select>
+          </div>
+
+          <!-- Club Website with Search -->
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              Web Klubu
+              <button type="button" id="searchWebsite" class="ml-2 text-accent-blue hover:text-blue-400 text-xs">
+                🔍 Hledat Online
+              </button>
+            </label>
+            <input 
+              type="url" 
+              id="clubWebsite" 
+              placeholder="https://www.sparta.cz"
+              class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
+            >
+            <div id="websiteSearchResults" class="mt-2 hidden"></div>
+          </div>
+
+          <!-- File Upload Area -->
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              Soubor Loga <span class="text-red-500">*</span>
+            </label>
+            
+            <!-- URL Upload -->
+            <div class="mb-3">
+              <input 
+                type="url" 
+                id="logoUrl" 
+                placeholder="Nebo vložte URL obrázku (https://...)" 
+                class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
+              >
+              <button type="button" id="loadFromUrl" class="mt-2 px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-smooth text-sm">
+                📥 Načíst z URL
+              </button>
+            </div>
+            
+            <div class="relative">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-dark-border"></div>
+              </div>
+              <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-dark-card text-gray-400">nebo</span>
+              </div>
+            </div>
+            
+            <div id="uploadArea" class="upload-area rounded-lg p-12 text-center cursor-pointer border-2 border-dashed border-dark-border hover:border-accent-blue transition-smooth mt-3">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              <p class="text-lg mb-2">Přetáhněte logo sem nebo <span class="text-accent-blue font-semibold">procházet</span></p>
+              <p class="text-sm text-gray-500">SVG, PNG nebo PDF • Preferováno průhledné pozadí</p>
+              <p class="text-xs text-gray-600 mt-2">SVG a PDF soubory budou automaticky převedeny na PNG</p>
+              <input type="file" id="fileInput" accept=".svg,.png,.pdf" class="hidden" multiple>
+            </div>
+            
+            <p class="text-xs text-gray-500 mt-2">💡 Můžete vybrat více souborů najednou pro nahrání variant</p>
+          </div>
+
+          <!-- Files Preview -->
+          <div id="filesPreviewArea" class="hidden">
+            <h3 class="text-lg font-semibold mb-3">Vybrané soubory</h3>
+            <div id="filesPreviewList" class="space-y-3">
+              <!-- Files will be listed here -->
+            </div>
+          </div>
+
+          <!-- Upload Button -->
+          <button 
+            type="submit" 
+            id="uploadSubmit" 
+            class="w-full px-6 py-4 bg-accent-green rounded-lg font-semibold hover:bg-green-600 transition-smooth disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+          >
+            Nahrát Logo
+          </button>
+
+          <!-- Requirements Notice -->
+          <div class="bg-red-900/20 border border-red-800 rounded-lg p-4 text-sm">
+            <p class="font-semibold text-red-400 mb-2">⚠️ Požadavky na nahrání:</p>
+            <ul class="list-disc list-inside space-y-1 text-red-300/80">
+              <li>Název klubu je povinný (automatické zamítnutí bez něj)</li>
+              <li>UUID klubu musí být platné</li>
+              <li>Akceptovány pouze SVG, PNG a PDF soubory</li>
+              <li>Doporučeno průhledné pozadí</li>
+            </ul>
+          </div>
+
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-dark-border mt-20">
+    <div class="container mx-auto px-6 py-8 text-center text-gray-400">
+      <p>🇨🇿 České Kluby Loga API | Administrace</p>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/admin.js"></script>
+</body>
+</html>

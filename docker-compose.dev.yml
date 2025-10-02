@@ -1,0 +1,38 @@
+version: '3.8'
+
+# Development version with hot-reload
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: czech-clubs-backend-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+    volumes:
+      - ./backend:/app
+      - ./data/logos:/root/logos
+      - ./data/db:/root
+    restart: unless-stopped
+    command: go run .
+
+  frontend:
+    image: node:20-alpine
+    container_name: czech-clubs-frontend-dev
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  logos:
+  db:

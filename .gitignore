@@ -1,0 +1,23 @@
+# Environment
+.env
+.env.local
+
+# Data directories
+data/
+logos/
+*.sqlite
+*.db
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

@@ -1,0 +1,124 @@
+package main
+
+import (
+	"database/sql"
+	"log"
+	"os"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	_ "github.com/mattn/go-sqlite3"
+)
+
+var db *sql.DB
+
+func main() {
+	// Initialize database
+	var err error
+	db, err = initDB()
+	if err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	defer db.Close()
+
+	// Create logos directory if it doesn't exist
+	if err := os.MkdirAll("./logos", 0755); err != nil {
+		log.Fatal("Failed to create logos directory:", err)
+	}
+
+	// Create subdirectories for SVG and PNG
+	if err := os.MkdirAll("./logos/svg", 0755); err != nil {
+		log.Fatal("Failed to create logos/svg directory:", err)
+	}
+	if err := os.MkdirAll("./logos/png", 0755); err != nil {
+		log.Fatal("Failed to create logos/png directory:", err)
+	}
+
+	// Initialize Gin router
+	r := gin.Default()
+
+	// CORS middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
+	// Routes
+	setupRoutes(r)
+
+	// Start server
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("🚀 Server starting on port %s", port)
+	log.Printf("📁 Logos directory: ./logos")
+	log.Printf("💾 Database: ./data/db.sqlite")
+
+	if err := r.Run(":" + port); err != nil {
+		log.Fatal("Failed to start server:", err)
+	}
+}
+
+func setupRoutes(r *gin.Engine) {
+	// Health check
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	// Club routes (proxy to FAČR API)
+	clubs := r.Group("/clubs")
+	{
+		clubs.GET("/search", searchClubs)
+		clubs.GET("/:id", getClub)
+	}
+
+	// Logo routes
+	logos := r.Group("/logos")
+	{
+		logos.GET("", listLogos)
+		logos.GET("/:id", getLogo)
+		logos.GET("/:id/json", getLogoWithMetadata)
+		logos.POST("/:id", uploadLogo)
+	}
+}
+
+func initDB() (*sql.DB, error) {
+	// Create data directory if it doesn't exist
+	if err := os.MkdirAll("./data", 0755); err != nil {
+		return nil, err
+	}
+
+	db, err := sql.Open("sqlite3", "./data/db.sqlite")
+	if err != nil {
+		return nil, err
+	}
+
+	// Create tables
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS logos (
+			id TEXT PRIMARY KEY,
+			club_name TEXT NOT NULL,
+			club_city TEXT,
+			club_type TEXT,
+			club_website TEXT,
+			has_svg INTEGER DEFAULT 0,
+			has_png INTEGER DEFAULT 0,
+			primary_format TEXT DEFAULT 'png',
+			file_size_svg INTEGER,
+			file_size_png INTEGER,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("✓ Database initialized")
+	return db, nil
+}
