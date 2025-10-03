@@ -2,7 +2,7 @@ import './style.css'
 import gsap from 'gsap'
 
 // Configuration
-const API_BASE_URL = window.location.hostname === 'localhost' ? '/api' : 'http://localhost:8080'
+const API_BASE_URL = 'https://logoapi.sportcreative.eu/logos'
 
 // Get UUID from URL
 const urlParams = new URLSearchParams(window.location.search)
