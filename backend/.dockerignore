@@ -1,6 +1,13 @@
 *.sqlite
 *.db
-logos/
 .git
 .gitignore
 README.md
+*.test
+*.out
+go.work
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

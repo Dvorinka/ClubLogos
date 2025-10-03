@@ -34,17 +34,27 @@ async function searchClubs(query) {
     const response = await fetch(`${API_BASE_URL}/clubs/search?q=${encodeURIComponent(query)}`)
     
     if (!response.ok) {
-      throw new Error('Vyhledávání selhalo')
+      throw new Error('API nedostupné')
+    }
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('API vrátilo neplatnou odpověď')
     }
     
     const clubs = await response.json()
     await displaySearchResults(clubs)
     
   } catch (error) {
-    console.error('Search error:', error)
+    // Suppress console spam from HTML responses
+    if (!error.message.includes('<!DOCTYPE')) {
+      console.warn('Search failed:', error.message)
+    }
     searchResults.innerHTML = `
-      <div class="text-center py-4 text-red-400">
-        <p>Vyhledávání selhalo. Zkuste to prosím znovu.</p>
+      <div class="text-center py-4 text-yellow-400">
+        <p class="mb-2">⚠️ Hledání dočasně nedostupné</p>
+        <p class="text-xs text-gray-400">Zkontrolujte, zda běží backend server</p>
       </div>
     `
   }
@@ -65,17 +75,29 @@ async function displaySearchResults(clubs) {
   try {
     const logosResponse = await fetch(`${API_BASE_URL}/logos`)
     if (logosResponse.ok) {
-      const data = await logosResponse.json()
-      existingLogos = data || []
+      const contentType = logosResponse.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        const data = await logosResponse.json()
+        existingLogos = data || []
+      }
     }
   } catch (error) {
-    console.log('Could not fetch existing logos:', error)
+    // Silently fail - this is optional data
   }
   
   searchResults.innerHTML = clubs.map(club => {
     // Check if we have this logo in our API
     const existingLogo = existingLogos.find(l => l.id === club.id)
-    const logoUrl = existingLogo ? existingLogo.logo_url : (club.logo_url || '')
+    
+    // Priority: 1. Our API logos, 2. FACR API logos
+    let logoUrl = ''
+    if (existingLogo) {
+      // Use our API endpoint (proxied through /api)
+      logoUrl = `${API_BASE_URL}/logos/${club.id}`
+    } else if (club.logo_url) {
+      // Use FACR logo as fallback
+      logoUrl = club.logo_url
+    }
     
     // Create logo HTML with fallback icon
     let logoHtml = ''

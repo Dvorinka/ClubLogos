@@ -1,0 +1,20 @@
+{
+  "name": "club-logos-asset-optimizer",
+  "version": "1.0.0",
+  "description": "Asset optimization for Club Logos project (SVG, PNG, PDF)",
+  "main": "optimize-assets.js",
+  "scripts": {
+    "optimize": "node optimize-assets.js",
+    "optimize:watch": "nodemon --watch ../data --watch ../frontend/dist -e svg,png,pdf --exec npm run optimize"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "fs-extra": "^11.1.1",
+    "sharp": "^0.32.6",
+    "svgo": "^3.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "type": "module"
+}

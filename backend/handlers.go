@@ -89,13 +89,127 @@ func getDemoClubs(query string) []Club {
 			Type:    "football",
 			Website: "https://www.sigmafotbal.cz",
 		},
+		{
+			ID:      "66666666-7777-8888-9999-aaaaaaaaaaaa",
+			Name:    "FC Slovan Liberec",
+			City:    "Liberec",
+			Type:    "football",
+			Website: "https://www.fcslovanliberec.cz",
+		},
+		{
+			ID:      "77777777-8888-9999-aaaa-bbbbbbbbbbbb",
+			Name:    "MFK Karviná",
+			City:    "Karviná",
+			Type:    "football",
+			Website: "https://www.mfkkarvina.cz",
+		},
+		{
+			ID:      "88888888-9999-aaaa-bbbb-cccccccccccc",
+			Name:    "FC Fastav Zlín",
+			City:    "Zlín",
+			Type:    "football",
+			Website: "https://www.fczlin.cz",
+		},
+		{
+			ID:      "99999999-aaaa-bbbb-cccc-dddddddddddd",
+			Name:    "FK Jablonec",
+			City:    "Jablonec nad Nisou",
+			Type:    "football",
+			Website: "https://www.fkjablonec.cz",
+		},
+		{
+			ID:      "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+			Name:    "SFC Opava",
+			City:    "Opava",
+			Type:    "football",
+			Website: "https://www.sfcopava.cz",
+		},
+		{
+			ID:      "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+			Name:    "FK Teplice",
+			City:    "Teplice",
+			Type:    "football",
+			Website: "https://www.fkteplice.cz",
+		},
+		{
+			ID:      "cccccccc-dddd-eeee-ffff-000000000000",
+			Name:    "1. FK Příbram",
+			City:    "Příbram",
+			Type:    "football",
+			Website: "https://www.1fkpribram.cz",
+		},
+		{
+			ID:      "dddddddd-eeee-ffff-0000-111111111111",
+			Name:    "SK Dynamo České Budějovice",
+			City:    "České Budějovice",
+			Type:    "football",
+			Website: "https://www.dynamocb.cz",
+		},
+		{
+			ID:      "eeeeeeee-ffff-0000-1111-222222222222",
+			Name:    "FC Zbrojovka Brno",
+			City:    "Brno",
+			Type:    "football",
+			Website: "https://www.fczbrno.cz",
+		},
+		{
+			ID:      "ffffffff-0000-1111-2222-333333333333",
+			Name:    "FC Vysočina Jihlava",
+			City:    "Jihlava",
+			Type:    "football",
+			Website: "https://www.fcvysocina.cz",
+		},
+		{
+			ID:      "00000000-1111-2222-3333-444444444444",
+			Name:    "FK Mladá Boleslav",
+			City:    "Mladá Boleslav",
+			Type:    "football",
+			Website: "https://www.fkmb.cz",
+		},
+		{
+			ID:      "10101010-1111-2222-3333-444444444444",
+			Name:    "SK Sigma Hranice",
+			City:    "Hranice",
+			Type:    "football",
+			Website: "",
+		},
+		{
+			ID:      "20202020-2222-3333-4444-555555555555",
+			Name:    "SK Hranice",
+			City:    "Hranice",
+			Type:    "football",
+			Website: "",
+		},
+		{
+			ID:      "30303030-3333-4444-5555-666666666666",
+			Name:    "TJ Krnov",
+			City:    "Krnov",
+			Type:    "football",
+			Website: "",
+		},
 	}
 
 	var results []Club
 	lowerQuery := strings.ToLower(query)
+	
+	// Fuzzy matching: check contains in name, city, and partial matches
 	for _, club := range demoClubs {
-		if strings.Contains(strings.ToLower(club.Name), lowerQuery) {
+		lowerName := strings.ToLower(club.Name)
+		lowerCity := strings.ToLower(club.City)
+		
+		// Exact contains match in name or city
+		if strings.Contains(lowerName, lowerQuery) || strings.Contains(lowerCity, lowerQuery) {
 			results = append(results, club)
+			continue
+		}
+		
+		// Fuzzy match: check if query matches start of any word in name
+		words := strings.Fields(lowerName)
+		for _, word := range words {
+			if strings.HasPrefix(word, lowerQuery) {
+				results = append(results, club)
+				break
+			}
 		}
 	}
 

@@ -34,8 +34,9 @@ func main() {
 		log.Fatal("Failed to create logos/png directory:", err)
 	}
 
-	// Initialize Gin router
+	// Initialize Gin router with larger request size limit (32MB)
 	r := gin.Default()
+	r.MaxMultipartMemory = 32 << 20 // 32 MB
 
 	// CORS middleware
 	r.Use(cors.New(cors.Config{
@@ -44,6 +45,9 @@ func main() {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
+		AllowOriginFunc: func(origin string) bool {
+			return true // Allow all origins
+		},
 	}))
 
 	// Routes

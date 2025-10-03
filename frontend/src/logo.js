@@ -46,8 +46,8 @@ function displayLogoDetails(logo) {
   document.getElementById('clubName').textContent = logo.club_name
   document.getElementById('clubMeta').textContent = `${logo.club_type || 'fotbal'}`
   
-  // Logo Previews
-  const previewUrl = logo.logo_url || logo.logo_url_png || logo.logo_url_svg
+  // Logo Previews - construct URL through API proxy
+  const previewUrl = `${API_BASE_URL}/logos/${logoId}`
   document.getElementById('logoPreviewLight').src = previewUrl
   document.getElementById('logoPreviewDark').src = previewUrl
   
@@ -55,20 +55,20 @@ function displayLogoDetails(logo) {
   const formatsGrid = document.getElementById('formatsGrid')
   const formats = []
   
-  if (logo.has_png && logo.logo_url_png) {
+  if (logo.has_png) {
     formats.push({
       name: 'PNG',
-      url: logo.logo_url_png,
+      url: `${API_BASE_URL}/logos/${logoId}?format=png`,
       size: formatFileSize(logo.file_size_png),
       icon: '🖼️',
       color: 'bg-blue-600'
     })
   }
   
-  if (logo.has_svg && logo.logo_url_svg) {
+  if (logo.has_svg) {
     formats.push({
       name: 'SVG',
-      url: logo.logo_url_svg,
+      url: `${API_BASE_URL}/logos/${logoId}?format=svg`,
       size: formatFileSize(logo.file_size_svg),
       icon: '📐',
       color: 'bg-green-600'

@@ -72,11 +72,15 @@ async function loadLogos() {
 
 // Display logos in grid
 function displayLogos(logos) {
-  logoGrid.innerHTML = logos.map(logo => `
+  logoGrid.innerHTML = logos.map(logo => {
+    // Construct logo URL properly through API proxy
+    const logoUrl = `${API_BASE_URL}/logos/${logo.id}`
+    
+    return `
     <div class="logo-card bg-dark-card rounded-xl p-4 border border-dark-border hover:border-accent-blue transition-smooth cursor-pointer group" data-logo-id="${logo.id}">
       <div class="aspect-square bg-dark-bg rounded-lg flex items-center justify-center mb-3 overflow-hidden">
         <img 
-          src="${logo.logo_url}" 
+          src="${logoUrl}" 
           alt="${logo.club_name}"
           class="max-w-full max-h-full object-contain p-2 group-hover:scale-110 transition-transform duration-300"
           loading="lazy"
@@ -90,7 +94,8 @@ function displayLogos(logos) {
         ${logo.has_png ? '<span class="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs">PNG</span>' : ''}
       </div>
     </div>
-  `).join('')
+  `
+  }).join('')
   
   // Animate logo cards
   gsap.from('.logo-card', {

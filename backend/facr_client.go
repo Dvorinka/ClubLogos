@@ -30,6 +30,7 @@ type Club struct {
 	City    string `json:"city,omitempty"`
 	Type    string `json:"type,omitempty"`
 	Website string `json:"website,omitempty"`
+	LogoURL string `json:"logo_url,omitempty"`
 }
 
 // FACRSearchResponse represents the search response from FAČR API
@@ -98,6 +99,7 @@ func (c *FACRClient) SearchClubs(query string) ([]Club, error) {
 			City:    city,
 			Type:    result.ClubType,
 			Website: "", // Not provided in search results
+			LogoURL: result.LogoURL,
 		})
 	}
 
@@ -159,6 +161,7 @@ func (c *FACRClient) GetClub(id string) (*Club, error) {
 		City:    city,
 		Type:    clubResp.ClubType,
 		Website: "", // Not provided in FACR API
+		LogoURL: clubResp.LogoURL,
 	}
 
 	return club, nil
