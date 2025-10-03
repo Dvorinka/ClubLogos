@@ -7,10 +7,11 @@ export default defineConfig({
     port: 3000,
     open: true,
     proxy: {
-      '/api': {
+      // Proxy all /logos/* requests to the backend
+      '^/logos/.*': {
         target: process.env.VITE_API_URL || 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        secure: false
       }
     }
   },
