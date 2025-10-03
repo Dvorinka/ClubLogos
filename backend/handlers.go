@@ -407,7 +407,7 @@ func listLogos(c *gin.Context) {
 
 		logo.HasSVG = hasSVG == 1
 		logo.HasPNG = hasPNG == 1
-		
+
 		if logo.HasPNG {
 			logo.LogoURL = fmt.Sprintf("%s/logos/%s?format=png", baseURL, logo.ID)
 		} else if logo.HasSVG {
@@ -433,17 +433,32 @@ func uploadLogo(c *gin.Context) {
 		return
 	}
 
-	// Get club name from form (required)
+	// Read metadata from form
 	clubName := c.PostForm("club_name")
-	if clubName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "club_name is required"})
-		return
-	}
-
-	// Optional fields
 	clubCity := c.PostForm("club_city")
 	clubType := c.PostForm("club_type")
 	clubWebsite := c.PostForm("club_website")
+
+	// Derive metadata if missing
+	if clubName == "" {
+		if club, err := facrClient.GetClub(id); err == nil && club != nil {
+			if club.Name != "" {
+				clubName = club.Name
+			}
+			if clubType == "" && club.Type != "" {
+				clubType = club.Type
+			}
+			if clubCity == "" && club.City != "" {
+				clubCity = club.City
+			}
+			if clubWebsite == "" && club.Website != "" {
+				clubWebsite = club.Website
+			}
+		}
+		if clubName == "" {
+			clubName = "Club " + id
+		}
+	}
 
 	// Get uploaded file
 	file, err := c.FormFile("file")
@@ -451,8 +466,6 @@ func uploadLogo(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no file provided"})
 		return
 	}
-
-	// Validate file type
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if ext != ".svg" && ext != ".png" && ext != ".pdf" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "only .svg, .png and .pdf files are allowed"})

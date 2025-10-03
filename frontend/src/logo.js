@@ -43,6 +43,8 @@ function displayLogoDetails(logo) {
   logoDetail.classList.remove('hidden')
   
   // Club Info
+  const editBtn = document.getElementById('editButton')
+  if (editBtn) editBtn.href = `/admin.html?id=${logoId}`
   document.getElementById('clubName').textContent = logo.club_name
   document.getElementById('clubMeta').textContent = `${logo.club_type || 'fotbal'}`
   
@@ -137,7 +139,7 @@ function displayLogoDetails(logo) {
   document.getElementById('uploadDate').textContent = formatDate(logo.created_at)
   
   // API URLs
-  const baseUrl = window.location.origin
+  const baseUrl = API_BASE_URL
   document.getElementById('apiUrlDefault').textContent = `${baseUrl}/logos/${logo.id}`
   document.getElementById('apiUrlJson').textContent = `${baseUrl}/logos/${logo.id}/json`
   

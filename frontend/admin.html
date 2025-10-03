@@ -72,19 +72,18 @@
             >
           </div>
 
-          <!-- Club Name (Required) -->
+          <!-- Club Name (Optional) -->
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-2">
-              Název Klubu <span class="text-red-500">*</span>
+              Název Klubu <span class="text-gray-500 text-xs">(volitelné)</span>
             </label>
             <input 
               type="text" 
               id="clubName" 
-              required
               placeholder="AC Sparta Praha"
               class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
             >
-            <p class="text-xs text-gray-500 mt-1">Povinné: Nahrání bude zamítnuto bez názvu klubu</p>
+            <p class="text-xs text-gray-500 mt-1">Volitelné: Pokud název neuvedete, doplníme jej automaticky dle FAČR (podle UUID)</p>
           </div>
 
           <!-- Club Type -->
@@ -178,7 +177,7 @@
           <div class="bg-red-900/20 border border-red-800 rounded-lg p-4 text-sm">
             <p class="font-semibold text-red-400 mb-2">⚠️ Požadavky na nahrání:</p>
             <ul class="list-disc list-inside space-y-1 text-red-300/80">
-              <li>Název klubu je povinný (automatické zamítnutí bez něj)</li>
+              <li>Název klubu je volitelný (doplníme dle FAČR podle UUID)</li>
               <li>UUID klubu musí být platné</li>
               <li>Akceptovány pouze SVG, PNG a PDF soubory</li>
               <li>Doporučeno průhledné pozadí</li>

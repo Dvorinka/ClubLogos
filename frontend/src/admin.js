@@ -385,11 +385,6 @@ uploadForm.addEventListener('submit', async (e) => {
     return
   }
   
-  if (!clubName) {
-    showNotification('Název klubu je povinný', 'error')
-    return
-  }
-  
   if (selectedFiles.length === 0) {
     showNotification('Vyberte prosím soubor loga', 'error')
     return
@@ -507,6 +502,38 @@ function showNotification(message, type = 'info') {
 console.log('🇨🇿 České Kluby Loga API - Administrace')
 console.log('Backend API:', API_BASE_URL)
 console.log('FAČR API:', FACR_API_URL)
+
+// Prefill editing when navigated with ?id=<uuid>
+try {
+  const params = new URLSearchParams(window.location.search)
+  const editId = params.get('id')
+  if (editId) {
+    // Fill UUID and show upload section
+    const uuidInput = document.getElementById('clubUuid')
+    uuidInput.value = editId
+    uploadSection.classList.remove('hidden')
+    uploadSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    showNotification('Režim úprav pro existující logo', 'info')
+
+    // Load metadata to prefill fields
+    ;(async () => {
+      try {
+        const resp = await fetch(`${API_BASE_URL}/logos/${editId}/json`)
+        if (resp.ok) {
+          const contentType = resp.headers.get('content-type') || ''
+          if (contentType.includes('application/json')) {
+            const data = await resp.json()
+            if (data.club_name) document.getElementById('clubName').value = data.club_name
+            if (data.club_type) document.getElementById('clubType').value = data.club_type
+            if (data.club_website) document.getElementById('clubWebsite').value = data.club_website
+          }
+        }
+      } catch (e) {
+        // Non-fatal
+      }
+    })()
+  }
+} catch (_) {}
 
 // Load from URL functionality
 const loadFromUrlBtn = document.getElementById('loadFromUrl')
