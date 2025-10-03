@@ -2,7 +2,7 @@ import './style.css'
 import gsap from 'gsap'
 
 // Configuration
-const API_BASE_URL = 'https://logoapi.sportcreative.eu/'
+const API_BASE_URL = 'https://logoapi.sportcreative.eu'
 
 // Get UUID from URL
 const urlParams = new URLSearchParams(window.location.search)
