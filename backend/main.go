@@ -38,13 +38,13 @@ func main() {
 	r := gin.Default()
 	r.MaxMultipartMemory = 32 << 20 // 32 MB
 
-	// CORS middleware
+	// CORS middleware - Allow all origins, methods, and headers
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"},
+		AllowHeaders:     []string{"*"},
+		ExposeHeaders:    []string{"*"},
+		AllowCredentials: false, // Must be false when using wildcard origins
 		AllowOriginFunc: func(origin string) bool {
 			return true // Allow all origins
 		},
