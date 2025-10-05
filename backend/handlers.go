@@ -282,6 +282,10 @@ func getLogo(c *gin.Context) {
 		return
 	}
 
+	// Set CORS headers explicitly for file serving
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
+	c.Header("Access-Control-Allow-Headers", "*")
 	c.Header("Content-Type", contentType)
 	c.Header("Cache-Control", "public, max-age=31536000")
 	c.File(logoPath)
