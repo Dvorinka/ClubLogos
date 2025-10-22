@@ -22,7 +22,8 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         admin: resolve(__dirname, 'admin.html'),
         apiDocs: resolve(__dirname, 'api-docs.html'),
-        logo: resolve(__dirname, 'logo.html')
+        logo: resolve(__dirname, 'logo.html'),
+        logos: resolve(__dirname, 'logos.html')
       }
     }
   }

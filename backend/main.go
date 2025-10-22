@@ -88,6 +88,7 @@ func setupRoutes(r *gin.Engine) {
 		logos.GET("/:id", getLogo)
 		logos.GET("/:id/json", getLogoWithMetadata)
 		logos.POST("/:id", uploadLogo)
+		logos.DELETE("/:id", deleteLogo)
 	}
 }
 

@@ -9,6 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/srwiley/oksvg"
+	"github.com/srwiley/rasterx"
 )
 
 // ConvertSVGToPNG converts an SVG file to PNG format
@@ -24,8 +27,12 @@ func ConvertSVGToPNG(svgPath, pngPath string, width int) error {
 		return nil
 	}
 
-	// If no converter available, copy SVG as fallback and log warning
-	return fmt.Errorf("no SVG converter available (install ImageMagick or Inkscape)")
+	// Try pure-Go conversion
+	if err := convertWithGoRenderer(svgPath, pngPath, width); err == nil {
+		return nil
+	}
+
+	return fmt.Errorf("no SVG converter available (install ImageMagick or Inkscape, or ensure Go renderer deps)")
 }
 
 // ConvertPDFToPNG converts a PDF file to PNG format
@@ -39,14 +46,14 @@ func ConvertPDFToPNG(pdfPath, pngPath string, width int) error {
 		fmt.Sprintf("%s[0]", pdfPath), // Only first page
 		pngPath,
 	)
-	
+
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("PDF conversion failed (install ImageMagick and Ghostscript): %v - %s", err, stderr.String())
 	}
-	
+
 	return nil
 }
 
@@ -58,14 +65,14 @@ func convertWithImageMagick(svgPath, pngPath string, width int) error {
 		svgPath,
 		pngPath,
 	)
-	
+
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("imagemagick conversion failed: %v - %s", err, stderr.String())
 	}
-	
+
 	return nil
 }
 
@@ -76,14 +83,64 @@ func convertWithInkscape(svgPath, pngPath string, width int) error {
 		fmt.Sprintf("--export-width=%d", width),
 		svgPath,
 	)
-	
+
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("inkscape conversion failed: %v - %s", err, stderr.String())
 	}
 	
+	return nil
+}
+
+func convertWithGoRenderer(svgPath, pngPath string, width int) error {
+	f, err := os.Open(svgPath)
+	if err != nil {
+		return fmt.Errorf("open svg: %w", err)
+	}
+	defer f.Close()
+
+	icon, err := oksvg.ReadIconStream(f)
+	if err != nil {
+		return fmt.Errorf("parse svg: %w", err)
+	}
+
+	vb := icon.ViewBox
+	targetW := width
+	if targetW <= 0 {
+		targetW = int(vb.W)
+		if targetW <= 0 {
+			targetW = 512
+		}
+	}
+	var targetH int
+	if vb.W != 0 {
+		targetH = int(float64(targetW) * (vb.H / vb.W))
+	} else {
+		targetH = targetW
+	}
+	if targetH <= 0 {
+		targetH = targetW
+	}
+
+	icon.SetTarget(0, 0, float64(targetW), float64(targetH))
+
+	rgba := image.NewRGBA(image.Rect(0, 0, targetW, targetH))
+	scanner := rasterx.NewScannerGV(targetW, targetH, rgba, rgba.Bounds())
+	raster := rasterx.NewDasher(targetW, targetH, scanner)
+	icon.Draw(raster, 1.0)
+
+	out, err := os.Create(pngPath)
+	if err != nil {
+		return fmt.Errorf("create png: %w", err)
+	}
+	defer out.Close()
+
+	if err := png.Encode(out, rgba); err != nil {
+		os.Remove(pngPath)
+		return fmt.Errorf("encode png: %w", err)
+	}
 	return nil
 }
 

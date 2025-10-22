@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="cs" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Všechna Loga - České Kluby Loga API</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body class="bg-dark-bg text-white min-h-screen">
+  <nav class="border-b border-dark-border bg-dark-card/50 backdrop-blur-sm sticky top-0 z-50">
+    <div class="container mx-auto px-6 py-4">
+      <div class="flex items-center justify-between">
+        <a href="/" class="text-2xl font-bold gradient-text">České Kluby Loga</a>
+        <div class="flex gap-4">
+          <a href="/" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Domů</a>
+          <a href="/logos.html" class="nav-link px-4 py-2 rounded-lg bg-accent-blue/20 transition-smooth">Všechna Loga</a>
+          <a href="/api-docs.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">API Docs</a>
+          <a href="/admin.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Admin</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <header class="border-b border-dark-border bg-dark-card">
+    <div class="container mx-auto px-6 py-8">
+      <h1 class="text-3xl font-bold gradient-text mb-2">Všechna Loga</h1>
+      <p class="text-gray-400">Procházejte všechna dostupná loga, vyhledávejte a spravujte</p>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-6 py-12">
+    <div class="mb-6 flex flex-col md:flex-row gap-3 md:items-center">
+      <input 
+        type="text" 
+        id="allLogoSearch" 
+        placeholder="Hledat mezi všemi logy..."
+        class="w-full md:max-w-lg bg-dark-card border border-dark-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
+      >
+      <div class="text-xs text-gray-500">20 log na stránku • řazeno: nejnovější</div>
+    </div>
+
+    <div id="allLoading" class="text-center py-12">
+      <div class="spinner mx-auto"></div>
+      <p class="mt-4 text-gray-400">Načítání log...</p>
+    </div>
+
+    <div id="allEmpty" class="text-center py-16 hidden">
+      <div class="text-6xl mb-4">⚽</div>
+      <p class="text-xl text-gray-400 mb-4">Žádná loga nenalezena</p>
+    </div>
+
+    <div id="allLogoGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-6"></div>
+
+    <div class="text-center mt-10">
+      <button id="loadMoreBtn" class="px-6 py-3 bg-dark-card border border-dark-border rounded-lg hover:bg-dark-border transition-smooth hidden">Načíst další</button>
+    </div>
+  </main>
+
+  <footer class="border-t border-dark-border mt-20">
+    <div class="container mx-auto px-6 py-8 text-center text-gray-400">
+      <p>🇨🇿 České Kluby Loga API</p>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/logos.js"></script>
+</body>
+</html>

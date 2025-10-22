@@ -34,6 +34,7 @@ const CONFIG = {
   },
   // Directories to scan (relative to project root)
   scanDirs: [
+    'backend/logos',
     'data/logos',
     'frontend/dist',
   ],
@@ -74,7 +75,7 @@ async function getFileSize(filePath) {
  */
 async function optimizeSvgFile(filePath) {
   const svg = await fs.readFile(filePath, 'utf8');
-  const result = optimize(svg, {
+  const result = optimizeSvg(svg, {
     path: filePath,
     multipass: true,
     plugins: [
@@ -98,6 +99,45 @@ async function optimizeSvgFile(filePath) {
   
   await fs.writeFile(filePath, result.data);
   return true;
+}
+
+async function convertSvgToPng(svgPath) {
+  try {
+    const normalized = path.normalize(svgPath);
+    let pngPath = normalized.replace(/\.svg$/i, '.png');
+
+    const mappings = [
+      {
+        from: path.join(path.sep, 'data', 'logos', 'svg') + path.sep,
+        to:   path.join(path.sep, 'data', 'logos', 'png') + path.sep,
+      },
+      {
+        from: path.join(path.sep, 'backend', 'logos', 'svg') + path.sep,
+        to:   path.join(path.sep, 'backend', 'logos', 'png') + path.sep,
+      },
+    ];
+
+    for (const { from, to } of mappings) {
+      if (normalized.includes(from)) {
+        pngPath = normalized.replace(from, to).replace(/\.svg$/i, '.png');
+        break;
+      }
+    }
+
+    await fs.mkdir(path.dirname(pngPath), { recursive: true });
+
+    const image = sharp(svgPath, { density: 300 });
+    await image
+      .resize({ width: 512, fit: 'inside', withoutEnlargement: true })
+      .png({ quality: CONFIG.compression.png.quality, effort: CONFIG.compression.png.effort })
+      .toFile(pngPath);
+
+    console.log(chalk.green(`  ✓ Converted to PNG: ${pngPath}`));
+    return true;
+  } catch (error) {
+    console.warn(chalk.yellow(`  ⚠️  SVG to PNG conversion skipped: ${error.message}`));
+    return false;
+  }
 }
 
 /**
@@ -195,7 +235,11 @@ async function processFile(filePath) {
     // Optimize based on file type
     switch (ext) {
       case 'svg':
-        optimized = await optimizeSvgFile(filePath);
+        {
+          const didOptimize = await optimizeSvgFile(filePath);
+          const didConvert = await convertSvgToPng(filePath);
+          optimized = didOptimize || didConvert;
+        }
         break;
       case 'png':
       case 'jpg':

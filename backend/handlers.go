@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -369,13 +370,43 @@ func getLogoWithMetadata(c *gin.Context) {
 
 // List all logos
 func listLogos(c *gin.Context) {
-	rows, err := db.Query(`
-		SELECT id, club_name, club_city, club_type, club_website,
-		       has_svg, has_png, primary_format,
-		       created_at, updated_at
-		FROM logos
-		ORDER BY club_name
-	`)
+	q := strings.TrimSpace(c.Query("q"))
+	sortParam := c.DefaultQuery("sort", "name")
+	limitStr := c.Query("limit")
+	pageStr := c.Query("page")
+
+	base := "SELECT id, club_name, club_city, club_type, club_website, has_svg, has_png, primary_format, created_at, updated_at FROM logos"
+	where := ""
+	args := []interface{}{}
+	if q != "" {
+		where = " WHERE LOWER(club_name) LIKE ? OR LOWER(club_city) LIKE ? OR id LIKE ?"
+		like := "%" + strings.ToLower(q) + "%"
+		args = append(args, like, like, "%"+q+"%")
+	}
+	order := " ORDER BY club_name"
+	if sortParam == "recent" {
+		order = " ORDER BY datetime(updated_at) DESC, datetime(created_at) DESC"
+	}
+	limitClause := ""
+	if limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
+			limitClause = " LIMIT ?"
+			args = append(args, limit)
+			if pageStr != "" {
+				if page, err := strconv.Atoi(pageStr); err == nil {
+					if page < 1 {
+						page = 1
+					}
+					offset := (page - 1) * limit
+					limitClause += " OFFSET ?"
+					args = append(args, offset)
+				}
+			}
+		}
+	}
+
+	query := base + where + order + limitClause
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
@@ -392,8 +423,7 @@ func listLogos(c *gin.Context) {
 	for rows.Next() {
 		var logo LogoMetadata
 		var hasSVG, hasPNG int
-		
-		err := rows.Scan(
+		if err := rows.Scan(
 			&logo.ID,
 			&logo.ClubName,
 			&logo.ClubCity,
@@ -404,14 +434,12 @@ func listLogos(c *gin.Context) {
 			&logo.PrimaryFormat,
 			&logo.CreatedAt,
 			&logo.UpdatedAt,
-		)
-		if err != nil {
+		); err != nil {
 			continue
 		}
 
 		logo.HasSVG = hasSVG == 1
 		logo.HasPNG = hasPNG == 1
-
 		if logo.HasPNG {
 			logo.LogoURL = fmt.Sprintf("%s/logos/%s?format=png", baseURL, logo.ID)
 		} else if logo.HasSVG {
@@ -422,6 +450,31 @@ func listLogos(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, logos)
+}
+
+func deleteLogo(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "logo ID is required"})
+		return
+	}
+	if _, err := uuid.Parse(id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid UUID format"})
+		return
+	}
+
+	_, err := db.Exec("DELETE FROM logos WHERE id = ?", id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
+	pngPath := filepath.Join("./logos/png", id+".png")
+	svgPath := filepath.Join("./logos/svg", id+".svg")
+	os.Remove(pngPath)
+	os.Remove(svgPath)
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "id": id})
 }
 
 func uploadLogo(c *gin.Context) {

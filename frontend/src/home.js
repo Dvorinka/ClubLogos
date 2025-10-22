@@ -44,27 +44,19 @@ const browseBtn = document.getElementById('browseBtn')
 
 let allLogos = []
 
-// Load logos
-async function loadLogos() {
+async function loadRecentLogos() {
   try {
-    const response = await fetch(`${API_BASE_URL}/logos`)
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch logos')
-    }
-    
+    const response = await fetch(`${API_BASE_URL}/logos?sort=recent&limit=8`)
+    if (!response.ok) throw new Error('Failed to fetch recent logos')
     allLogos = await response.json()
-    
     loadingState.classList.add('hidden')
-    
     if (allLogos.length === 0) {
       emptyState.classList.remove('hidden')
     } else {
       displayLogos(allLogos)
     }
-    
   } catch (error) {
-    console.error('Error loading logos:', error)
+    console.error('Error loading recent logos:', error)
     loadingState.classList.add('hidden')
     emptyState.classList.remove('hidden')
   }
@@ -116,20 +108,26 @@ function displayLogos(logos) {
 }
 
 // Filter logos
-function filterLogos(query) {
-  const filtered = allLogos.filter(logo => 
-    logo.club_name.toLowerCase().includes(query.toLowerCase()) ||
-    (logo.club_city && logo.club_city.toLowerCase().includes(query.toLowerCase()))
-  )
-  
-  displayLogos(filtered)
-  
-  if (filtered.length === 0 && query) {
-    logoGrid.innerHTML = `
-      <div class="col-span-full text-center py-16">
-        <p class="text-xl text-gray-400">No logos found matching "${query}"</p>
-      </div>
-    `
+async function filterLogos(query) {
+  const q = query.trim()
+  if (!q) {
+    displayLogos(allLogos)
+    return
+  }
+  try {
+    const resp = await fetch(`${API_BASE_URL}/logos?q=${encodeURIComponent(q)}&limit=50`)
+    if (!resp.ok) throw new Error('Search failed')
+    const results = await resp.json()
+    displayLogos(results)
+    if (results.length === 0) {
+      logoGrid.innerHTML = `
+        <div class="col-span-full text-center py-16">
+          <p class="text-xl text-gray-400">No logos found matching "${q}"</p>
+        </div>
+      `
+    }
+  } catch (e) {
+    console.warn('Search error:', e.message)
   }
 }
 
@@ -158,10 +156,7 @@ if (gallerySearch) {
 // Browse button - scroll to gallery
 if (browseBtn) {
   browseBtn.addEventListener('click', () => {
-    document.getElementById('logoGallery').scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'start' 
-    })
+    window.location.href = '/logos.html'
   })
 }
 
@@ -202,7 +197,7 @@ console.log('🇨🇿 Czech Clubs Logos API - Home')
 console.log('Backend API:', API_BASE_URL)
 
 // Load logos on page load
-loadLogos()
+loadRecentLogos()
 
 // Show welcome notification
 setTimeout(() => {

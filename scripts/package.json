@@ -5,7 +5,7 @@
   "main": "optimize-assets.js",
   "scripts": {
     "optimize": "node optimize-assets.js",
-    "optimize:watch": "nodemon --watch ../data --watch ../frontend/dist -e svg,png,pdf --exec npm run optimize"
+    "optimize:watch": "nodemon --watch ../backend/logos --watch ../data --watch ../frontend/dist -e svg,pdf --exec npm run optimize"
   },
   "dependencies": {
     "chalk": "^4.1.2",
