@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -42,16 +43,26 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"},
-		AllowHeaders:     []string{"*"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "Range", "Accept-Language", "Accept-Encoding", "Cache-Control", "Pragma", "If-Modified-Since"},
 		ExposeHeaders:    []string{"*"},
-		AllowCredentials: false, // Must be false when using wildcard origins
-		AllowOriginFunc: func(origin string) bool {
-			return true // Allow all origins
-		},
+		AllowCredentials: false,
+		AllowOriginFunc: func(origin string) bool { return true },
 	}))
 
 	// Routes
 	setupRoutes(r)
+
+	// Global preflight handler for any path
+	r.OPTIONS("/*path", func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD")
+		reqHeaders := c.GetHeader("Access-Control-Request-Headers")
+		if reqHeaders == "" {
+			reqHeaders = "Origin, Content-Type, Accept, Authorization, X-Requested-With, Range, Accept-Language, Accept-Encoding, Cache-Control, Pragma, If-Modified-Since"
+		}
+		c.Header("Access-Control-Allow-Headers", reqHeaders)
+		c.Status(http.StatusNoContent)
+	})
 
 	// Start server
 	port := os.Getenv("PORT")
