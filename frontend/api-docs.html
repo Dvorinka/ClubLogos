@@ -15,9 +15,10 @@
         <a href="/" class="text-2xl font-bold gradient-text">🇨🇿 České Kluby Loga</a>
         <div class="flex items-center gap-3">
           <div class="flex gap-4">
-            <a href="/" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Domů</a>
-            <a href="/api-docs.html" class="nav-link px-4 py-2 rounded-lg bg-accent-blue/20">API Docs</a>
-            <a href="/admin.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Admin</a>
+            <a href="/" class="nav-link px-4 py-2 rounded-lg transition-smooth">Domů</a>
+            <a href="/logos.html" class="nav-link px-4 py-2 rounded-lg transition-smooth">Všechna Loga</a>
+            <a href="/api-docs.html" class="nav-link nav-link-active px-4 py-2 rounded-lg transition-smooth">API Docs</a>
+            <a href="/admin.html" class="nav-link px-4 py-2 rounded-lg transition-smooth">Admin</a>
           </div>
           <button id="themeToggle" type="button" class="px-3 py-1.5 text-xs md:text-sm rounded-full border border-dark-border bg-dark-bg/60 hover:bg-dark-border transition-smooth">
             ☀️ <span class="hidden sm:inline">Světlý režim</span>
@@ -455,10 +456,23 @@ Write-Host "Club: $($result.club_name)" -ForegroundColor Cyan</code></pre>
 
   <!-- Footer -->
   <footer class="border-t border-dark-border mt-20">
-    <div class="container mx-auto px-6 py-8 text-center text-gray-400">
-      <p>🇨🇿 České Kluby Loga API</p>
+    <div class="container mx-auto px-6 py-8 text-gray-400 text-sm">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+        <p class="text-center md:text-left">
+          🇨🇿 České Kluby Loga API
+          <span class="hidden sm:inline">| API Dokumentace</span>
+        </p>
+        <div class="flex items-center gap-3 text-xs">
+          <span class="px-3 py-1 rounded-full bg-dark-card border border-dark-border">
+            Open Source · MIT
+          </span>
+          <span class="hidden sm:inline">Poháněno FAČR Scraper API</span>
+        </div>
+      </div>
     </div>
   </footer>
+
+  <script type="module" src="/src/api-docs.js"></script>
 
 </body>
 </html>
