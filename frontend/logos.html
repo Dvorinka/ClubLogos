@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="cs" class="dark">
+<html lang="cs" class="dark theme-dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,11 +11,16 @@
     <div class="container mx-auto px-6 py-4">
       <div class="flex items-center justify-between">
         <a href="/" class="text-2xl font-bold gradient-text">České Kluby Loga</a>
-        <div class="flex gap-4">
-          <a href="/" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Domů</a>
-          <a href="/logos.html" class="nav-link px-4 py-2 rounded-lg bg-accent-blue/20 transition-smooth">Všechna Loga</a>
-          <a href="/api-docs.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">API Docs</a>
-          <a href="/admin.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Admin</a>
+        <div class="flex items-center gap-3">
+          <div class="flex gap-4">
+            <a href="/" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Domů</a>
+            <a href="/logos.html" class="nav-link px-4 py-2 rounded-lg bg-accent-blue/20 transition-smooth">Všechna Loga</a>
+            <a href="/api-docs.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">API Docs</a>
+            <a href="/admin.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Admin</a>
+          </div>
+          <button id="themeToggle" type="button" class="px-3 py-1.5 text-xs md:text-sm rounded-full border border-dark-border bg-dark-bg/60 hover:bg-dark-border transition-smooth">
+            ☀️ <span class="hidden sm:inline">Světlý režim</span>
+          </button>
         </div>
       </div>
     </div>
@@ -29,14 +34,30 @@
   </header>
 
   <main class="container mx-auto px-6 py-12">
-    <div class="mb-6 flex flex-col md:flex-row gap-3 md:items-center">
-      <input 
-        type="text" 
-        id="allLogoSearch" 
-        placeholder="Hledat mezi všemi logy..."
-        class="w-full md:max-w-lg bg-dark-card border border-dark-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
-      >
-      <div class="text-xs text-gray-500">20 log na stránku • řazeno: nejnovější</div>
+    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div class="w-full md:max-w-lg">
+        <div class="relative">
+          <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" />
+            </svg>
+          </span>
+          <input 
+            type="text" 
+            id="allLogoSearch" 
+            placeholder="Hledat mezi všemi logy..."
+            class="w-full bg-dark-card border border-dark-border rounded-lg pl-10 pr-4 py-3 text-white focus:outline-none focus:border-accent-blue transition-smooth"
+          >
+        </div>
+      </div>
+      <div class="flex flex-col items-start md:items-end gap-2">
+        <div class="inline-flex rounded-full bg-dark-card border border-dark-border p-1 text-xs">
+          <button type="button" data-sport-filter="all" class="px-3 py-1.5 rounded-full bg-accent-blue text-white transition-smooth">Vše</button>
+          <button type="button" data-sport-filter="football" class="px-3 py-1.5 rounded-full bg-dark-card text-gray-300 hover:bg-dark-border transition-smooth">Fotbal</button>
+          <button type="button" data-sport-filter="futsal" class="px-3 py-1.5 rounded-full bg-dark-card text-gray-300 hover:bg-dark-border transition-smooth">Futsal</button>
+        </div>
+        <div class="text-[11px] text-gray-500">20 log na stránku • řazeno: nejnovější</div>
+      </div>
     </div>
 
     <div id="allLoading" class="text-center py-12">

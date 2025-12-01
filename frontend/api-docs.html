@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="cs" class="dark">
+<html lang="cs" class="dark theme-dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,10 +13,15 @@
     <div class="container mx-auto px-6 py-4">
       <div class="flex items-center justify-between">
         <a href="/" class="text-2xl font-bold gradient-text">🇨🇿 České Kluby Loga</a>
-        <div class="flex gap-4">
-          <a href="/" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Domů</a>
-          <a href="/api-docs.html" class="nav-link px-4 py-2 rounded-lg bg-accent-blue/20">API Docs</a>
-          <a href="/admin.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Admin</a>
+        <div class="flex items-center gap-3">
+          <div class="flex gap-4">
+            <a href="/" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Domů</a>
+            <a href="/api-docs.html" class="nav-link px-4 py-2 rounded-lg bg-accent-blue/20">API Docs</a>
+            <a href="/admin.html" class="nav-link px-4 py-2 rounded-lg hover:bg-dark-border transition-smooth">Admin</a>
+          </div>
+          <button id="themeToggle" type="button" class="px-3 py-1.5 text-xs md:text-sm rounded-full border border-dark-border bg-dark-bg/60 hover:bg-dark-border transition-smooth">
+            ☀️ <span class="hidden sm:inline">Světlý režim</span>
+          </button>
         </div>
       </div>
     </div>
@@ -78,6 +83,42 @@ curl http://localhost:3000/api/logos/{uuid}</code></pre>
     <!-- Endpoints -->
     <section class="mb-16">
       <h2 class="text-3xl font-bold mb-6">📡 Endpointy</h2>
+
+      <!-- Search Clubs with Logos -->
+      <div class="bg-dark-card rounded-xl p-6 border border-dark-border mb-6">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="px-3 py-1 bg-blue-600/20 text-blue-400 rounded font-mono text-sm">GET</span>
+          <code class="text-lg">/clubs/search-with-logos</code>
+        </div>
+        <p class="text-gray-400 mb-4">Vyhledá kluby v lokální databázi nahraných log (podle názvu nebo ID) a vrátí kompaktní JSON obsahující pouze ID, název, URL loga a příznak lokálního loga.</p>
+
+        <h4 class="text-sm font-semibold mb-2">Query Parametry:</h4>
+        <div class="bg-dark-bg rounded-lg p-4 mb-4 space-y-2">
+          <div>
+            <code class="text-sm">q</code> <span class="text-red-400">*</span> <span class="text-gray-500">string</span>
+            <p class="text-xs text-gray-500 mt-1">Text pro hledání klubu (např. "Sparta", "Slavia", "Hranice").</p>
+          </div>
+          <div>
+            <code class="text-sm">sport</code> <span class="text-gray-500">string</span>
+            <p class="text-xs text-gray-500 mt-1">Volitelný filtr podle druhu sportu: <code>"football"</code>, <code>"futsal"</code> nebo <code>"all"</code> (výchozí).
+            Alias: <code>type</code>.</p>
+          </div>
+        </div>
+
+        <div class="bg-dark-bg rounded-lg p-4">
+          <h4 class="text-sm font-semibold text-gray-400 mb-2">Response 200:</h4>
+          <pre class="text-sm overflow-x-auto"><code>[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "AC Sparta Praha",
+    "logo_url": "http://localhost:8080/logos/550e8400-e29b-41d4-a716-446655440000?format=png",
+    "has_local_logo": true
+  }
+]</code></pre>
+          <p class="text-xs text-gray-500 mt-2">Pozn.: Výsledky se berou pouze z lokální databáze. <code>logo_url</code> vždy míří na tento backend
+          a <code>has_local_logo</code> indikuje, že pro klub existuje alespoň jedno uložené logo.</p>
+        </div>
+      </div>
 
       <!-- List Logos -->
       <div class="bg-dark-card rounded-xl p-6 border border-dark-border mb-6">

@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"log"
-	"os"
 	"net/http"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -46,7 +46,7 @@ func main() {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With", "Range", "Accept-Language", "Accept-Encoding", "Cache-Control", "Pragma", "If-Modified-Since"},
 		ExposeHeaders:    []string{"*"},
 		AllowCredentials: false,
-		AllowOriginFunc: func(origin string) bool { return true },
+		AllowOriginFunc:  func(origin string) bool { return true },
 	}))
 
 	// Routes
@@ -89,6 +89,7 @@ func setupRoutes(r *gin.Engine) {
 	clubs := r.Group("/clubs")
 	{
 		clubs.GET("/search", searchClubs)
+		clubs.GET("/search-with-logos", searchClubsWithLogos)
 		clubs.GET("/:id", getClub)
 	}
 

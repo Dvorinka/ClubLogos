@@ -1,4 +1,5 @@
 import './style.css'
+import './theme.js'
 import gsap from 'gsap'
 
 // Configuration

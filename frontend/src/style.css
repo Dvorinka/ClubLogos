@@ -97,3 +97,48 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Light/Dark theme overrides */
+.theme-dark body {
+  background-color: #0a0e1a;
+  color: #f9fafb;
+}
+
+.theme-light body {
+  background-color: #f9fafb;
+  color: #020617;
+}
+
+.theme-light .bg-dark-bg {
+  background-color: #f9fafb;
+}
+
+.theme-light .bg-dark-card {
+  background-color: #ffffff;
+}
+
+.theme-light .border-dark-border {
+  border-color: #e5e7eb;
+}
+
+.theme-light .text-gray-400 {
+  color: #6b7280;
+}
+
+.theme-light .text-gray-500 {
+  color: #6b7280;
+}
+
+.theme-light .text-gray-600 {
+  color: #4b5563;
+}
+
+.theme-light .spinner {
+  border-color: rgba(15, 23, 42, 0.08);
+  border-top-color: #3b82f6;
+}
+
+.theme-light .bg-dark-card\/50 {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+}
