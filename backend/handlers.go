@@ -82,9 +82,16 @@ func searchClubsWithLogos(c *gin.Context) {
 	where := ""
 	args := []interface{}{}
 	if q != "" {
-		where = " WHERE (LOWER(club_name) LIKE ? OR id LIKE ?)"
-		like := "%" + strings.ToLower(q) + "%"
-		args = append(args, like, "%"+q+"%")
+		normQ := normalizeClubSearchQuery(q)
+		likeRaw := "%" + strings.ToLower(q) + "%"
+		if normQ != "" && normQ != q {
+			likeNorm := "%" + strings.ToLower(normQ) + "%"
+			where = " WHERE ((LOWER(club_name) LIKE ? OR LOWER(club_name) LIKE ?) OR id LIKE ?)"
+			args = append(args, likeRaw, likeNorm, "%"+q+"%")
+		} else {
+			where = " WHERE (LOWER(club_name) LIKE ? OR id LIKE ?)"
+			args = append(args, likeRaw, "%"+q+"%")
+		}
 	}
 	if sport != "" && sport != "all" {
 		if where == "" {
@@ -252,6 +259,30 @@ func removeDiacritics(s string) string {
 		b = append(b, r)
 	}
 	return string(b)
+}
+
+func normalizeClubSearchQuery(q string) string {
+	s := strings.TrimSpace(q)
+	if s == "" {
+		return ""
+	}
+
+	lower := strings.ToLower(s)
+	parts := strings.Fields(lower)
+	if len(parts) == 0 {
+		return ""
+	}
+
+	switch parts[0] {
+	case "fk":
+		parts[0] = "fotbalový klub"
+	case "tj":
+		parts[0] = "tělovýchovná jednota"
+	case "sk":
+		parts[0] = "sportovní klub"
+	}
+
+	return strings.Join(parts, " ")
 }
 
 // Demo data fallback
