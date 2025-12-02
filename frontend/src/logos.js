@@ -8,12 +8,14 @@ const loading = document.getElementById('allLoading')
 const empty = document.getElementById('allEmpty')
 const loadMoreBtn = document.getElementById('loadMoreBtn')
 const searchInput = document.getElementById('allLogoSearch')
+const sportFilterButtons = document.querySelectorAll('[data-sport-filter]')
 
 let page = 1
 const limit = 20
 let query = ''
 let isLoading = false
 let hasMore = true
+let sport = 'all'
 
 async function loadPage(reset = false) {
   if (isLoading) return
@@ -35,6 +37,7 @@ async function loadPage(reset = false) {
     url.searchParams.set('limit', String(limit))
     url.searchParams.set('page', String(page))
     if (query) url.searchParams.set('q', query)
+    if (sport && sport !== 'all') url.searchParams.set('sport', sport)
 
     const resp = await fetch(url.toString().replace(window.location.origin, ''))
     if (!resp.ok) throw new Error('Failed to fetch logos')
@@ -89,6 +92,18 @@ function appendCards(items) {
   grid.insertAdjacentHTML('beforeend', html)
 }
 
+function updateSportFilterButtons() {
+  if (!sportFilterButtons || !sportFilterButtons.length) return
+  sportFilterButtons.forEach(btn => {
+    const value = btn.dataset.sportFilter || 'all'
+    const isActive = value === sport
+    btn.classList.toggle('bg-accent-blue', isActive)
+    btn.classList.toggle('text-white', isActive)
+    btn.classList.toggle('bg-dark-card', !isActive)
+    btn.classList.toggle('text-gray-300', !isActive)
+  })
+}
+
 grid.addEventListener('click', async (e) => {
   const delBtn = e.target.closest('.delete-logo')
   if (delBtn) {
@@ -125,6 +140,19 @@ searchInput.addEventListener('input', () => {
     loadPage(true)
   }, 300)
 })
+
+if (sportFilterButtons && sportFilterButtons.length) {
+  updateSportFilterButtons()
+  sportFilterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const value = btn.dataset.sportFilter || 'all'
+      if (value === sport) return
+      sport = value
+      updateSportFilterButtons()
+      loadPage(true)
+    })
+  })
+}
 
 loadMoreBtn.addEventListener('click', () => {
   if (hasMore) loadPage(false)

@@ -13,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"unicode"
+
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
  	"github.com/PuerkitoBio/goquery"
@@ -27,10 +30,22 @@ import (
 func searchClubs(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
 	if q == "" {
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'q' is required"})
 		return
 	}
 
+	clubs, err := scrapeFotbalSearch(q)
+	if err != nil || len(clubs) == 0 {
+		nq := removeDiacritics(strings.ToLower(q))
+		if nq != strings.ToLower(q) {
+			if c2, err2 := scrapeFotbalSearch(nq); err2 == nil && len(c2) > 0 {
+				c.JSON(http.StatusOK, c2)
+				return
+			}
+		}
+		c.JSON(http.StatusOK, getDemoClubs(q))
 	clubs, err := scrapeFotbalSearch(q)
 	if err != nil || len(clubs) == 0 {
 		nq := removeDiacritics(strings.ToLower(q))
@@ -54,6 +69,8 @@ func getClub(c *gin.Context) {
 		return
 	}
 
+	club, err := fetchClubByID(id)
+	if err != nil || club == nil {
 	club, err := fetchClubByID(id)
 	if err != nil || club == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "club not found"})
@@ -317,18 +334,18 @@ func getDemoClubs(query string) []Club {
 
 	var results []Club
 	lowerQuery := strings.ToLower(query)
-	
+
 	// Fuzzy matching: check contains in name, city, and partial matches
 	for _, club := range demoClubs {
 		lowerName := strings.ToLower(club.Name)
 		lowerCity := strings.ToLower(club.City)
-		
+
 		// Exact contains match in name or city
 		if strings.Contains(lowerName, lowerQuery) || strings.Contains(lowerCity, lowerQuery) {
 			results = append(results, club)
 			continue
 		}
-		
+
 		// Fuzzy match: check if query matches start of any word in name
 		words := strings.Fields(lowerName)
 		for _, word := range words {
@@ -345,21 +362,21 @@ func getDemoClubs(query string) []Club {
 // ==================== Logo Handlers ====================
 
 type LogoMetadata struct {
-	ID           string    `json:"id"`
-	ClubName     string    `json:"club_name"`
-	ClubCity     string    `json:"club_city,omitempty"`
-	ClubType     string    `json:"club_type,omitempty"`
-	ClubWebsite  string    `json:"club_website,omitempty"`
-	HasSVG       bool      `json:"has_svg"`
-	HasPNG       bool      `json:"has_png"`
-	PrimaryFormat string   `json:"primary_format"`
-	LogoURL      string    `json:"logo_url"`
-	LogoURLSVG   string    `json:"logo_url_svg,omitempty"`
-	LogoURLPNG   string    `json:"logo_url_png,omitempty"`
-	FileSizeSVG  int64     `json:"file_size_svg,omitempty"`
-	FileSizePNG  int64     `json:"file_size_png,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID            string    `json:"id"`
+	ClubName      string    `json:"club_name"`
+	ClubCity      string    `json:"club_city,omitempty"`
+	ClubType      string    `json:"club_type,omitempty"`
+	ClubWebsite   string    `json:"club_website,omitempty"`
+	HasSVG        bool      `json:"has_svg"`
+	HasPNG        bool      `json:"has_png"`
+	PrimaryFormat string    `json:"primary_format"`
+	LogoURL       string    `json:"logo_url"`
+	LogoURLSVG    string    `json:"logo_url_svg,omitempty"`
+	LogoURLPNG    string    `json:"logo_url_png,omitempty"`
+	FileSizeSVG   int64     `json:"file_size_svg,omitempty"`
+	FileSizePNG   int64     `json:"file_size_png,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // getLogo returns the logo file (PNG preferred, SVG fallback)
@@ -474,7 +491,7 @@ func getLogoWithMetadata(c *gin.Context) {
 		scheme = "https"
 	}
 	baseURL := fmt.Sprintf("%s://%s", scheme, c.Request.Host)
-	
+
 	// Primary URL (PNG preferred)
 	if metadata.HasPNG {
 		metadata.LogoURL = fmt.Sprintf("%s/logos/%s?format=png", baseURL, id)
@@ -496,6 +513,7 @@ func getLogoWithMetadata(c *gin.Context) {
 // List all logos
 func listLogos(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
+	sport := strings.ToLower(strings.TrimSpace(c.DefaultQuery("sport", c.DefaultQuery("type", ""))))
 	sortParam := c.DefaultQuery("sort", "name")
 	limitStr := c.Query("limit")
 	pageStr := c.Query("page")
@@ -715,16 +733,16 @@ func uploadLogo(c *gin.Context) {
 
 	if ext == ".svg" || ext == ".pdf" {
 		pngPath = filepath.Join("./logos/png", id+".png")
-		
+
 		if ext == ".svg" {
 			svgPath = filepath.Join("./logos/svg", id+".svg")
-			
+
 			// Save SVG
 			if err := c.SaveUploadedFile(file, svgPath); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save SVG file"})
 				return
 			}
-			
+
 			// Get SVG file size
 			if stat, err := os.Stat(svgPath); err == nil {
 				sizeSVG = stat.Size()
@@ -751,12 +769,12 @@ func uploadLogo(c *gin.Context) {
 			// PDF file - convert directly to PNG
 			pdfTempPath := filepath.Join("./logos/temp", id+".pdf")
 			os.MkdirAll("./logos/temp", 0755)
-			
+
 			if err := c.SaveUploadedFile(file, pdfTempPath); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save PDF file"})
 				return
 			}
-			
+
 			log.Printf("Converting PDF to PNG for club: %s", clubName)
 			if err := ConvertPDFToPNG(pdfTempPath, pngPath, 512); err != nil {
 				log.Printf("Error: Failed to convert PDF to PNG: %v", err)
@@ -764,15 +782,15 @@ func uploadLogo(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to convert PDF to PNG"})
 				return
 			}
-			
+
 			// Clean up temp PDF
 			os.Remove(pdfTempPath)
-			
+
 			// Optimize PNG
 			if err := OptimizePNG(pngPath); err != nil {
 				log.Printf("Warning: Failed to optimize PNG: %v", err)
 			}
-			
+
 			// Get PNG file size
 			if stat, err := os.Stat(pngPath); err == nil {
 				sizePNG = stat.Size()
@@ -783,17 +801,17 @@ func uploadLogo(c *gin.Context) {
 	} else {
 		// PNG upload
 		pngPath = filepath.Join("./logos/png", id+".png")
-		
+
 		if err := c.SaveUploadedFile(file, pngPath); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save PNG file"})
 			return
 		}
-		
+
 		// Optimize PNG
 		if err := OptimizePNG(pngPath); err != nil {
 			log.Printf("Warning: Failed to optimize PNG: %v", err)
 		}
-		
+
 		// Get PNG file size
 		if stat, err := os.Stat(pngPath); err == nil {
 			sizePNG = stat.Size()
@@ -817,14 +835,14 @@ func uploadLogo(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"success":    true,
-		"id":         id,
-		"club_name":  clubName,
-		"has_svg":    hasSVG == 1,
-		"has_png":    hasPNG == 1,
-		"size_svg":   sizeSVG,
-		"size_png":   sizePNG,
-		"message":    "logo uploaded successfully",
+		"success":   true,
+		"id":        id,
+		"club_name": clubName,
+		"has_svg":   hasSVG == 1,
+		"has_png":   hasPNG == 1,
+		"size_svg":  sizeSVG,
+		"size_png":  sizePNG,
+		"message":   "logo uploaded successfully",
 	}
 
 	c.JSON(http.StatusOK, response)

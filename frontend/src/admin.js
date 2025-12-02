@@ -11,8 +11,61 @@ const FACR_API_URL = 'https://facr.tdvorak.dev'
 const clubSearch = document.getElementById('clubSearch')
 const searchResults = document.getElementById('searchResults')
 const uploadSection = document.getElementById('uploadSection')
+const clubSportFilterButtons = document.querySelectorAll('[data-club-sport-filter]')
+
+const selectedClubSummary = document.getElementById('selectedClubSummary')
+const selectedClubNameEl = document.getElementById('selectedClubName')
+const selectedClubTypeEl = document.getElementById('selectedClubType')
+const selectedClubCityEl = document.getElementById('selectedClubCity')
+const selectedClubWebsiteEl = document.getElementById('selectedClubWebsite')
+const selectedClubLogoEl = document.getElementById('selectedClubLogo')
 
 let searchTimeout
+let activeIndex = -1
+let lastClubs = []
+let clubSportFilter = 'all'
+
+function normalizeText(s) {
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+function highlight(text, query) {
+  const t = String(text || '')
+  const nq = normalizeText(query)
+  if (!nq) return t
+  const nt = normalizeText(t)
+  const idx = nt.indexOf(nq)
+  if (idx === -1) return t
+  let i = 0, oi = 0, start = -1, end = -1
+  while (oi < t.length && i <= idx + nq.length) {
+    const ch = t[oi]
+    const n = normalizeText(ch)
+    if (i === idx) start = oi
+    if (n) i += n.length
+    oi += 1
+    if (i >= idx + nq.length) { end = oi; break }
+  }
+  if (start === -1 || end === -1) return t
+  return t.slice(0, start) + '<span class="bg-accent-blue/20">' + t.slice(start, end) + '</span>' + t.slice(end)
+}
+function updateActive() {
+  const items = searchResults.querySelectorAll('.club-result')
+  items.forEach((el, i) => {
+    if (i === activeIndex) el.classList.add('ring-2', 'ring-accent-blue')
+    else el.classList.remove('ring-2', 'ring-accent-blue')
+  })
+}
+
+function updateClubSportFilterButtons() {
+  if (!clubSportFilterButtons || !clubSportFilterButtons.length) return
+  clubSportFilterButtons.forEach(btn => {
+    const value = (btn.dataset.clubSportFilter || 'all').toLowerCase()
+    const isActive = value === clubSportFilter
+    btn.classList.toggle('bg-accent-blue', isActive)
+    btn.classList.toggle('text-white', isActive)
+    btn.classList.toggle('bg-dark-bg', !isActive)
+    btn.classList.toggle('text-gray-300', !isActive)
+  })
+}
 
 clubSearch.addEventListener('input', (e) => {
   clearTimeout(searchTimeout)
@@ -26,6 +79,27 @@ clubSearch.addEventListener('input', (e) => {
   searchTimeout = setTimeout(() => {
     searchClubs(query)
   }, 300)
+})
+
+clubSearch.addEventListener('keydown', (e) => {
+  const total = searchResults.querySelectorAll('.club-result').length
+  if (!total) return
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    activeIndex = (activeIndex + 1) % total
+    updateActive()
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    activeIndex = (activeIndex - 1 + total) % total
+    updateActive()
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    if (activeIndex >= 0 && activeIndex < total) {
+      const item = searchResults.querySelectorAll('.club-result')[activeIndex]
+      const btn = item.querySelector('.select-club')
+      if (btn) btn.click(); else item.click()
+    }
+  }
 })
 
 async function searchClubs(query) {
@@ -45,7 +119,8 @@ async function searchClubs(query) {
     }
     
     const clubs = await response.json()
-    await displaySearchResults(clubs)
+    lastClubs = Array.isArray(clubs) ? clubs : []
+    await displaySearchResults(lastClubs)
     
   } catch (error) {
     // Suppress console spam from HTML responses
@@ -86,7 +161,22 @@ async function displaySearchResults(clubs) {
     // Silently fail - this is optional data
   }
   
-  searchResults.innerHTML = clubs.map(club => {
+  const q = clubSearch.value.trim()
+  const nq = normalizeText(q)
+  let filtered = Array.isArray(clubs) ? clubs : []
+  if (nq) {
+    filtered = filtered.filter(c => {
+      const name = normalizeText(c.name)
+      const city = normalizeText(c.city)
+      const id = String(c.id || '').toLowerCase()
+      return name.includes(nq) || city.includes(nq) || id.includes(q.toLowerCase())
+    })
+  }
+  if (clubSportFilter && clubSportFilter !== 'all') {
+    filtered = filtered.filter(c => (c.type || '').toLowerCase() === clubSportFilter)
+  }
+  activeIndex = -1
+  searchResults.innerHTML = filtered.map(club => {
     // Check if we have this logo in our API
     const existingLogo = existingLogos.find(l => l.id === club.id)
     
@@ -121,12 +211,13 @@ async function displaySearchResults(clubs) {
       `
     }
     
+    const clubData = { ...club, display_logo_url: logoUrl }
     return `
-    <div class="club-result bg-dark-bg rounded-lg p-4 border border-dark-border hover:border-accent-blue transition-smooth cursor-pointer" data-club='${JSON.stringify(club)}' data-logo-url='${logoUrl}'>
+    <div class="club-result bg-dark-bg rounded-lg p-4 border border-dark-border hover:border-accent-blue transition-smooth cursor-pointer" data-club='${JSON.stringify(clubData)}'>
       <div class="flex items-center gap-4">
         ${logoHtml}
         <div class="flex-1 min-w-0">
-          <h3 class="font-semibold text-lg truncate">${club.name}</h3>
+          <h3 class="font-semibold text-lg truncate">${highlight(club.name, q)}</h3>
           <p class="text-sm text-gray-400">${club.type || 'football'}</p>
           <p class="text-xs text-gray-500 font-mono mt-1 truncate">${club.id}</p>
           ${club.website ? `<p class="text-xs text-blue-400 mt-1 truncate">${club.website}</p>` : ''}
@@ -169,6 +260,27 @@ function selectClub(club) {
   document.getElementById('clubName').value = club.name
   document.getElementById('clubType').value = club.type || 'football'
   document.getElementById('clubWebsite').value = club.website || ''
+
+  // Update summary card
+  if (selectedClubSummary && selectedClubNameEl && selectedClubTypeEl && selectedClubCityEl && selectedClubWebsiteEl && selectedClubLogoEl) {
+    selectedClubNameEl.textContent = club.name || ''
+    selectedClubTypeEl.textContent = (club.type || 'football').toUpperCase()
+    selectedClubCityEl.textContent = club.city || ''
+    if (club.website) {
+      selectedClubWebsiteEl.innerHTML = `<a href="${club.website}" target="_blank" class="hover:underline">${club.website}</a>`
+    } else {
+      selectedClubWebsiteEl.textContent = ''
+    }
+
+    const displayLogo = club.display_logo_url || club.logo_url || ''
+    if (displayLogo) {
+      selectedClubLogoEl.innerHTML = `<img src="${displayLogo}" alt="${club.name || ''}" class="max-w-full max-h-full object-contain rounded-md">`
+    } else {
+      selectedClubLogoEl.textContent = '🏟️'
+    }
+
+    selectedClubSummary.classList.remove('hidden')
+  }
   
   // Show upload section
   uploadSection.classList.remove('hidden')
@@ -185,6 +297,23 @@ function selectClub(club) {
   })
   
   showNotification(`Vybráno: ${club.name}`, 'success')
+}
+
+if (clubSportFilterButtons && clubSportFilterButtons.length) {
+  updateClubSportFilterButtons()
+  clubSportFilterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const value = (btn.dataset.clubSportFilter || 'all').toLowerCase()
+      if (value === clubSportFilter) return
+      clubSportFilter = value
+      updateClubSportFilterButtons()
+      if (lastClubs.length) {
+        displaySearchResults(lastClubs)
+      } else if (clubSearch.value.trim().length >= 2) {
+        searchClubs(clubSearch.value.trim())
+      }
+    })
+  })
 }
 
 // ==================== Website Search ====================

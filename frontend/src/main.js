@@ -101,6 +101,42 @@ uploadBtn.addEventListener('click', () => {
 const searchInput = document.getElementById('searchInput')
 const searchResults = document.getElementById('searchResults')
 let searchTimeout
+let activeIndex = -1
+let currentClubs = []
+
+function normalizeText(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+function highlight(text, query) {
+  const t = String(text)
+  const nq = normalizeText(query)
+  if (!nq) return t
+  const nt = normalizeText(t)
+  const idx = nt.indexOf(nq)
+  if (idx === -1) return t
+  let i = 0, oi = 0, start = -1, end = -1
+  while (oi < t.length && i <= idx + nq.length) {
+    const ch = t[oi]
+    const n = normalizeText(ch)
+    if (i === idx) start = oi
+    if (n) i += n.length
+    oi += 1
+    if (i >= idx + nq.length) { end = oi; break }
+  }
+  if (start === -1 || end === -1) return t
+  return t.slice(0, start) + '<span class="bg-accent-blue/20">' + t.slice(start, end) + '</span>' + t.slice(end)
+}
+
+function updateActive() {
+  const items = searchResults.querySelectorAll('.club-result')
+  items.forEach((el, i) => {
+    if (i === activeIndex) {
+      el.classList.add('ring-2', 'ring-accent-blue')
+    } else {
+      el.classList.remove('ring-2', 'ring-accent-blue')
+    }
+  })
+}
 
 searchInput.addEventListener('input', (e) => {
   clearTimeout(searchTimeout)
@@ -111,10 +147,29 @@ searchInput.addEventListener('input', (e) => {
     return
   }
   
-  // Debounce search
   searchTimeout = setTimeout(() => {
     searchClubs(query)
   }, 300)
+})
+
+searchInput.addEventListener('keydown', (e) => {
+  const total = searchResults.querySelectorAll('.club-result').length
+  if (!total) return
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    activeIndex = (activeIndex + 1) % total
+    updateActive()
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    activeIndex = (activeIndex - 1 + total) % total
+    updateActive()
+  } else if (e.key === 'Enter') {
+    e.preventDefault()
+    if (activeIndex >= 0 && activeIndex < total) {
+      const item = searchResults.querySelectorAll('.club-result')[activeIndex]
+      item.click()
+    }
+  }
 })
 
 async function searchClubs(query) {
@@ -130,12 +185,19 @@ async function searchClubs(query) {
     }
     
     const data = await response.json()
-    displaySearchResults(data)
+    const nq = normalizeText(query)
+    const filtered = data.filter(c => {
+      const name = normalizeText(c.name || '')
+      const city = normalizeText(c.city || '')
+      const id = String(c.id || '').toLowerCase()
+      return name.includes(nq) || city.includes(nq) || id.includes(query.toLowerCase())
+    })
+    displaySearchResults(filtered, query)
     
   } catch (error) {
     console.log('Backend not available, showing demo data')
-    // Demo data when backend is not ready
-    displaySearchResults(getDemoClubs(query))
+    const demo = getDemoClubs(query)
+    displaySearchResults(demo, query)
   }
 }
 
@@ -167,12 +229,15 @@ function getDemoClubs(query) {
     }
   ]
   
-  return demoClubs.filter(club => 
-    club.name.toLowerCase().includes(query.toLowerCase())
-  )
+  const nq = normalizeText(query)
+  return demoClubs.filter(club => {
+    const name = normalizeText(club.name)
+    const city = normalizeText(club.city)
+    return name.includes(nq) || city.includes(nq)
+  })
 }
 
-function displaySearchResults(clubs) {
+function displaySearchResults(clubs, query) {
   if (clubs.length === 0) {
     searchResults.innerHTML = `
       <div class="text-center py-8 text-gray-400">
@@ -182,12 +247,14 @@ function displaySearchResults(clubs) {
     return
   }
   
-  searchResults.innerHTML = clubs.map(club => `
-    <div class="club-result bg-dark-bg rounded-lg p-4 border border-dark-border hover:border-accent-blue transition-smooth cursor-pointer">
+  activeIndex = -1
+  currentClubs = clubs
+  searchResults.innerHTML = clubs.map((club, idx) => `
+    <div class="club-result bg-dark-bg rounded-lg p-4 border border-dark-border hover:border-accent-blue transition-smooth cursor-pointer" data-index="${idx}">
       <div class="flex items-center justify-between">
         <div class="flex-1">
-          <h3 class="font-semibold text-lg">${club.name}</h3>
-          <p class="text-sm text-gray-400">${club.city || 'N/A'} • ${club.type || 'football'}</p>
+          <h3 class="font-semibold text-lg">${highlight(club.name, query)}</h3>
+          <p class="text-sm text-gray-400">${highlight(club.city || 'N/A', query)} • ${club.type || 'football'}</p>
           <p class="text-xs text-gray-500 font-mono mt-1">${club.id}</p>
         </div>
         <button 
