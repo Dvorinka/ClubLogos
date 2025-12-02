@@ -1,4 +1,5 @@
 import './style.css'
+import './theme.js'
 import gsap from 'gsap'
 
 // Configuration
@@ -53,7 +54,7 @@ async function searchClubs(query) {
     }
     searchResults.innerHTML = `
       <div class="text-center py-4 text-yellow-400">
-        <p class="mb-2">⚠️ Hledání dočasně nedostupné</p>
+        <p class="mb-2">Hledání dočasně nedostupné</p>
         <p class="text-xs text-gray-400">Zkontrolujte, zda běží backend server</p>
       </div>
     `
@@ -128,11 +129,11 @@ async function displaySearchResults(clubs) {
           <h3 class="font-semibold text-lg truncate">${club.name}</h3>
           <p class="text-sm text-gray-400">${club.type || 'football'}</p>
           <p class="text-xs text-gray-500 font-mono mt-1 truncate">${club.id}</p>
-          ${club.website ? `<p class="text-xs text-blue-400 mt-1 truncate">🌐 ${club.website}</p>` : ''}
-          ${existingLogo ? '<p class="text-xs text-green-400 mt-1">✓ Logo již nahráno</p>' : ''}
+          ${club.website ? `<p class="text-xs text-blue-400 mt-1 truncate">${club.website}</p>` : ''}
+          ${existingLogo ? '<p class="text-xs text-green-400 mt-1">Logo již nahráno</p>' : ''}
         </div>
         <div class="flex flex-col gap-2 flex-shrink-0">
-          ${existingLogo ? `<a href="/logo.html?id=${club.id}" class="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-smooth text-sm text-center" onclick="event.stopPropagation()">👁️ Detail</a>` : ''}
+          ${existingLogo ? `<a href="/logo.html?id=${club.id}" class="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-smooth text-sm text-center" onclick="event.stopPropagation()">Detail</a>` : ''}
           <button class="select-club px-4 py-2 bg-accent-blue rounded-lg hover:bg-blue-600 transition-smooth text-sm">
             Vybrat
           </button>
@@ -210,7 +211,7 @@ searchWebsiteBtn.addEventListener('click', async () => {
       <div class="bg-dark-bg rounded-lg p-3 border border-dark-border">
         <p class="text-sm text-gray-400 mb-2">Vyhledat web klubu:</p>
         <a href="${searchUrl}" target="_blank" class="text-accent-blue hover:text-blue-400 text-sm">
-          🔍 Hledat "${clubName}" na Google
+          Hledat "${clubName}" na Google
         </a>
         <p class="text-xs text-gray-500 mt-2">Zkopírujte URL oficiálního webu a vložte jej výše</p>
       </div>
@@ -220,7 +221,7 @@ searchWebsiteBtn.addEventListener('click', async () => {
   } catch (error) {
     console.error('Website search error:', error)
   } finally {
-    searchWebsiteBtn.innerHTML = '🔍 Hledat Online'
+    searchWebsiteBtn.innerHTML = 'Hledat Online'
     searchWebsiteBtn.disabled = false
   }
 })
@@ -310,7 +311,7 @@ function displayFilesPreview() {
       <div class="bg-dark-bg rounded-lg p-4 border border-dark-border" data-file-index="${index}">
         <div class="flex items-start gap-4">
           <div class="flex-shrink-0 w-16 h-16 bg-dark-border/30 rounded flex items-center justify-center">
-            <span class="text-2xl">${fileObj.ext === 'svg' ? '📐' : fileObj.ext === 'pdf' ? '📄' : '🖼️'}</span>
+            <span class="text-2xl">${fileObj.ext === 'svg' ? 'SVG' : fileObj.ext === 'pdf' ? 'PDF' : 'PNG'}</span>
           </div>
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-2">
@@ -444,7 +445,7 @@ async function uploadLogos(uuid, clubName, clubType, clubWebsite, filesData) {
       submitBtn.innerHTML = `<div class="spinner mx-auto"></div> ${uploadedCount}/${filesData.length}`
     }
     
-    showNotification(`${uploadedCount} ${uploadedCount === 1 ? 'logo' : 'loga'} úspěšně nahráno pro ${clubName}! ✓`, 'success')
+    showNotification(`${uploadedCount} ${uploadedCount === 1 ? 'logo' : 'loga'} úspěšně nahráno pro ${clubName}!`, 'success')
     
     // Reset form after delay
     setTimeout(() => {
@@ -499,7 +500,7 @@ function showNotification(message, type = 'info') {
 
 // ==================== Initialize ====================
 
-console.log('🇨🇿 České Kluby Loga API - Administrace')
+console.log('České Kluby Loga API - Administrace')
 console.log('Backend API:', API_BASE_URL)
 console.log('FAČR API:', FACR_API_URL)
 
@@ -586,7 +587,7 @@ loadFromUrlBtn.addEventListener('click', async () => {
     showNotification(`Chyba načítání: ${error.message}`, 'error')
   } finally {
     loadFromUrlBtn.disabled = false
-    loadFromUrlBtn.innerHTML = '📥 Načíst z URL'
+    loadFromUrlBtn.innerHTML = 'Načíst z URL'
   }
 })
 

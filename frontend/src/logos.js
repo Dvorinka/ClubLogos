@@ -1,4 +1,5 @@
 import './style.css'
+import './theme.js'
 
 const API_BASE_URL = '/api'
 

@@ -1,4 +1,5 @@
 import './style.css'
+import './theme.js'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -217,7 +218,7 @@ function displaySearchResults(clubs) {
       
       // Visual feedback
       const originalText = btn.textContent
-      btn.textContent = '✓ Copied!'
+      btn.textContent = 'Copied!'
       setTimeout(() => {
         btn.textContent = originalText
       }, 2000)
@@ -351,7 +352,7 @@ async function uploadLogo(uuid, file) {
       throw new Error('Upload failed')
     }
     
-    showNotification('Logo uploaded successfully! ✓', 'success')
+    showNotification('Logo uploaded successfully!', 'success')
     
     // Reset form
     setTimeout(() => {
@@ -414,11 +415,11 @@ function showNotification(message, type = 'info') {
 
 // ==================== Initialize ====================
 
-console.log('🇨🇿 Czech Clubs Logos API Frontend')
+console.log('Czech Clubs Logos API Frontend')
 console.log('Backend API:', API_BASE_URL)
 console.log('FAČR API:', FACR_API_URL)
 
 // Show a welcome notification
 setTimeout(() => {
-  showNotification('Welcome to Czech Clubs Logos API! 🇨🇿', 'info')
+  showNotification('Welcome to Czech Clubs Logos API!', 'info')
 }, 1000)

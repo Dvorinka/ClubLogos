@@ -1,4 +1,5 @@
 import './style.css'
+import './theme.js'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -193,7 +194,7 @@ function showNotification(message, type = 'info') {
 
 // ==================== Initialize ====================
 
-console.log('🇨🇿 Czech Clubs Logos API - Home')
+console.log('Czech Clubs Logos API - Home')
 console.log('Backend API:', API_BASE_URL)
 
 // Load logos on page load
@@ -201,5 +202,5 @@ loadRecentLogos()
 
 // Show welcome notification
 setTimeout(() => {
-  showNotification('Welcome to Czech Clubs Logos API! 🇨🇿', 'info')
+  showNotification('Welcome to Czech Clubs Logos API!', 'info')
 }, 1000)

@@ -1,10 +1,12 @@
 package main
 
 import (
+ 	"bytes"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
+ 	neturl "net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,23 +15,32 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+ 	"github.com/PuerkitoBio/goquery"
+ 	"golang.org/x/text/unicode/norm"
+ 	"unicode"
 )
 
-var facrClient = NewFACRClient()
+ 
 
 // ==================== Club Handlers ====================
 
 func searchClubs(c *gin.Context) {
-	query := c.Query("q")
-	if query == "" {
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'q' is required"})
 		return
 	}
 
-	clubs, err := facrClient.SearchClubs(query)
-	if err != nil {
-		// Return demo data if FAČR API is unavailable
-		c.JSON(http.StatusOK, getDemoClubs(query))
+	clubs, err := scrapeFotbalSearch(q)
+	if err != nil || len(clubs) == 0 {
+		nq := removeDiacritics(strings.ToLower(q))
+		if nq != strings.ToLower(q) {
+			if c2, err2 := scrapeFotbalSearch(nq); err2 == nil && len(c2) > 0 {
+				c.JSON(http.StatusOK, c2)
+				return
+			}
+		}
+		c.JSON(http.StatusOK, getDemoClubs(q))
 		return
 	}
 
@@ -43,13 +54,127 @@ func getClub(c *gin.Context) {
 		return
 	}
 
-	club, err := facrClient.GetClub(id)
-	if err != nil {
+	club, err := fetchClubByID(id)
+	if err != nil || club == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "club not found"})
 		return
 	}
 
 	c.JSON(http.StatusOK, club)
+}
+
+func scrapeFotbalSearch(q string) ([]Club, error) {
+	vals := neturl.Values{}
+	vals.Set("q", q)
+	searchURL := "https://www.fotbal.cz/club/hledej?" + vals.Encode()
+	req, _ := http.NewRequest("GET", searchURL, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "cs-CZ,cs;q=0.9,en;q=0.8")
+	client := &http.Client{Timeout: 12 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		vals2 := neturl.Values{}
+		vals2.Set("q", "\""+q+"\"")
+		searchURL = "https://www.fotbal.cz/club/hledej?" + vals2.Encode()
+		req2, _ := http.NewRequest("GET", searchURL, nil)
+		req2.Header = req.Header.Clone()
+		resp2, err2 := client.Do(req2)
+		if err2 != nil {
+			return nil, err2
+		}
+		defer resp2.Body.Close()
+		if resp2.StatusCode != http.StatusOK {
+			return []Club{}, nil
+		}
+		resp = resp2
+	}
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(resp.Body)
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		return nil, err
+	}
+	clubs := []Club{}
+	doc.Find("li.ListItemSplit").Each(func(_ int, li *goquery.Selection) {
+		a := li.Find("a.Link--inverted").First()
+		href := strings.TrimSpace(a.AttrOr("href", ""))
+		if href == "" {
+			return
+		}
+		name := strings.TrimSpace(a.Find("span.H7").First().Text())
+		if name == "" {
+			name = strings.TrimSpace(a.Text())
+		}
+		logoURL := strings.TrimSpace(a.Find("img").First().AttrOr("src", ""))
+		address := strings.TrimSpace(li.Find(".ClubAddress p").First().Text())
+		clubType := "football"
+		if strings.Contains(strings.ToLower(href), "/futsal/") {
+			clubType = "futsal"
+		}
+		parts := strings.Split(strings.TrimRight(href, "/"), "/")
+		clubID := ""
+		if len(parts) > 0 {
+			clubID = parts[len(parts)-1]
+		}
+		if !strings.HasPrefix(href, "http://") && !strings.HasPrefix(href, "https://") {
+			href = "https://www.fotbal.cz" + href
+		}
+		city := extractCityFromAddress(address)
+		clubs = append(clubs, Club{ID: clubID, Name: name, City: city, Type: clubType, Website: "", LogoURL: logoURL})
+	})
+	return clubs, nil
+}
+
+func fetchClubByID(id string) (*Club, error) {
+	tryFetch := func(base string, typ string) (*Club, error) {
+		url := fmt.Sprintf("%s/%s", base, id)
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36")
+		req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+		req.Header.Set("Accept-Language", "cs-CZ,cs;q=0.9,en;q=0.8")
+		client := &http.Client{Timeout: 12 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("status %d", resp.StatusCode)
+		}
+		doc, err := goquery.NewDocumentFromReader(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		name := strings.TrimSpace(doc.Find("h1.H4 span").First().Text())
+		address := strings.TrimSpace(doc.Find(".ClubAddress p").First().Text())
+		city := extractCityFromAddress(address)
+		logo := fmt.Sprintf("https://is1.fotbal.cz/media/kluby/%s/%s_crop.jpg", id, id)
+		return &Club{ID: id, Name: name, City: city, Type: typ, Website: "", LogoURL: logo}, nil
+	}
+	if club, err := tryFetch("https://www.fotbal.cz/souteze/club/club", "football"); err == nil && club != nil && club.Name != "" {
+		return club, nil
+	}
+	if club, err := tryFetch("https://www.fotbal.cz/futsal/club/club", "futsal"); err == nil && club != nil && club.Name != "" {
+		return club, nil
+	}
+	return nil, fmt.Errorf("not found")
+}
+
+func removeDiacritics(s string) string {
+	d := norm.NFD.String(s)
+	b := make([]rune, 0, len(d))
+	for _, r := range d {
+		if unicode.Is(unicode.Mn, r) {
+			continue
+		}
+		b = append(b, r)
+	}
+	return string(b)
 }
 
 // Demo data fallback
@@ -374,14 +499,23 @@ func listLogos(c *gin.Context) {
 	sortParam := c.DefaultQuery("sort", "name")
 	limitStr := c.Query("limit")
 	pageStr := c.Query("page")
+	typeParam := strings.TrimSpace(strings.ToLower(c.Query("type")))
 
 	base := "SELECT id, club_name, club_city, club_type, club_website, has_svg, has_png, primary_format, created_at, updated_at FROM logos"
-	where := ""
+	whereParts := []string{}
 	args := []interface{}{}
 	if q != "" {
-		where = " WHERE LOWER(club_name) LIKE ? OR LOWER(club_city) LIKE ? OR id LIKE ?"
 		like := "%" + strings.ToLower(q) + "%"
+		whereParts = append(whereParts, "(LOWER(club_name) LIKE ? OR LOWER(club_city) LIKE ? OR id LIKE ?)")
 		args = append(args, like, like, "%"+q+"%")
+	}
+	if typeParam == "football" || typeParam == "futsal" {
+		whereParts = append(whereParts, "LOWER(club_type) = ?")
+		args = append(args, typeParam)
+	}
+	where := ""
+	if len(whereParts) > 0 {
+		where = " WHERE " + strings.Join(whereParts, " AND ")
 	}
 	order := " ORDER BY club_name"
 	if sortParam == "recent" {
@@ -449,6 +583,62 @@ func listLogos(c *gin.Context) {
 		logos = append(logos, logo)
 	}
 
+	if q != "" && len(logos) == 0 {
+		limitClause2 := ""
+		args2 := []interface{}{}
+		if limitStr != "" {
+			if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
+				limitClause2 = " LIMIT ?"
+				args2 = append(args2, limit)
+				if pageStr != "" {
+					if page, err := strconv.Atoi(pageStr); err == nil {
+						if page < 1 { page = 1 }
+						offset := (page - 1) * limit
+						limitClause2 += " OFFSET ?"
+						args2 = append(args2, offset)
+					}
+				}
+			}
+		}
+		where2 := ""
+		if typeParam == "football" || typeParam == "futsal" {
+			where2 = " WHERE LOWER(club_type) = ?"
+			args2 = append(args2, typeParam)
+		}
+		q2 := base + where2 + order + limitClause2
+		rows2, err2 := db.Query(q2, args2...)
+		if err2 == nil {
+			defer rows2.Close()
+			normQ := removeDiacritics(strings.ToLower(q))
+			tmp := []LogoMetadata{}
+			for rows2.Next() {
+				var logo LogoMetadata
+				var hasSVG2, hasPNG2 int
+				if err := rows2.Scan(
+					&logo.ID,
+					&logo.ClubName,
+					&logo.ClubCity,
+					&logo.ClubType,
+					&logo.ClubWebsite,
+					&hasSVG2,
+					&hasPNG2,
+					&logo.PrimaryFormat,
+					&logo.CreatedAt,
+					&logo.UpdatedAt,
+				); err != nil { continue }
+				logo.HasSVG = hasSVG2 == 1
+				logo.HasPNG = hasPNG2 == 1
+				if logo.HasPNG { logo.LogoURL = fmt.Sprintf("%s/logos/%s?format=png", baseURL, logo.ID) } else if logo.HasSVG { logo.LogoURL = fmt.Sprintf("%s/logos/%s?format=svg", baseURL, logo.ID) }
+				nameN := removeDiacritics(strings.ToLower(logo.ClubName))
+				cityN := removeDiacritics(strings.ToLower(logo.ClubCity))
+				if strings.Contains(nameN, normQ) || strings.Contains(cityN, normQ) || strings.Contains(strings.ToLower(logo.ID), strings.ToLower(q)) {
+					tmp = append(tmp, logo)
+				}
+			}
+			logos = tmp
+		}
+	}
+
 	c.JSON(http.StatusOK, logos)
 }
 
@@ -496,25 +686,14 @@ func uploadLogo(c *gin.Context) {
 	clubType := c.PostForm("club_type")
 	clubWebsite := c.PostForm("club_website")
 
-	// Derive metadata if missing
 	if clubName == "" {
-		if club, err := facrClient.GetClub(id); err == nil && club != nil {
-			if club.Name != "" {
-				clubName = club.Name
-			}
-			if clubType == "" && club.Type != "" {
-				clubType = club.Type
-			}
-			if clubCity == "" && club.City != "" {
-				clubCity = club.City
-			}
-			if clubWebsite == "" && club.Website != "" {
-				clubWebsite = club.Website
-			}
+		if club, err := fetchClubByID(id); err == nil && club != nil {
+			if club.Name != "" { clubName = club.Name }
+			if clubType == "" && club.Type != "" { clubType = club.Type }
+			if clubCity == "" && club.City != "" { clubCity = club.City }
+			if clubWebsite == "" && club.Website != "" { clubWebsite = club.Website }
 		}
-		if clubName == "" {
-			clubName = "Club " + id
-		}
+		if clubName == "" { clubName = "Club " + id }
 	}
 
 	// Get uploaded file

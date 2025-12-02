@@ -1,4 +1,5 @@
 import './style.css'
+import './theme.js'
 import gsap from 'gsap'
 
 // Configuration
@@ -62,7 +63,7 @@ function displayLogoDetails(logo) {
       name: 'PNG',
       url: `${API_BASE_URL}/logos/${logoId}?format=png`,
       size: formatFileSize(logo.file_size_png),
-      icon: '🖼️',
+      icon: 'PNG',
       color: 'bg-blue-600'
     })
   }
@@ -72,7 +73,7 @@ function displayLogoDetails(logo) {
       name: 'SVG',
       url: `${API_BASE_URL}/logos/${logoId}?format=svg`,
       size: formatFileSize(logo.file_size_svg),
-      icon: '📐',
+      icon: 'SVG',
       color: 'bg-green-600'
     })
   }
@@ -216,5 +217,5 @@ function showNotification(message, type = 'info') {
   }, 3000)
 }
 
-console.log('🇨🇿 České Kluby Loga API - Detail Loga')
+console.log('České Kluby Loga API - Detail loga')
 console.log('Logo ID:', logoId)
