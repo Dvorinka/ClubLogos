@@ -89,7 +89,6 @@ func setupRoutes(r *gin.Engine) {
 	clubs := r.Group("/clubs")
 	{
 		clubs.GET("/search", searchClubs)
-		clubs.GET("/search-with-logos", searchClubsWithLogos)
 		clubs.GET("/:id", getClub)
 	}
 

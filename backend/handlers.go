@@ -1,12 +1,12 @@
 package main
 
 import (
- 	"bytes"
+	"bytes"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
- 	neturl "net/url"
+	neturl "net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,34 +18,18 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
- 	"github.com/PuerkitoBio/goquery"
- 	"golang.org/x/text/unicode/norm"
- 	"unicode"
+	"golang.org/x/text/unicode/norm"
 )
-
- 
 
 // ==================== Club Handlers ====================
 
 func searchClubs(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
 	if q == "" {
-	q := strings.TrimSpace(c.Query("q"))
-	if q == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'q' is required"})
 		return
 	}
 
-	clubs, err := scrapeFotbalSearch(q)
-	if err != nil || len(clubs) == 0 {
-		nq := removeDiacritics(strings.ToLower(q))
-		if nq != strings.ToLower(q) {
-			if c2, err2 := scrapeFotbalSearch(nq); err2 == nil && len(c2) > 0 {
-				c.JSON(http.StatusOK, c2)
-				return
-			}
-		}
-		c.JSON(http.StatusOK, getDemoClubs(q))
 	clubs, err := scrapeFotbalSearch(q)
 	if err != nil || len(clubs) == 0 {
 		nq := removeDiacritics(strings.ToLower(q))
@@ -69,8 +53,6 @@ func getClub(c *gin.Context) {
 		return
 	}
 
-	club, err := fetchClubByID(id)
-	if err != nil || club == nil {
 	club, err := fetchClubByID(id)
 	if err != nil || club == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "club not found"})
@@ -513,7 +495,6 @@ func getLogoWithMetadata(c *gin.Context) {
 // List all logos
 func listLogos(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
-	sport := strings.ToLower(strings.TrimSpace(c.DefaultQuery("sport", c.DefaultQuery("type", ""))))
 	sortParam := c.DefaultQuery("sort", "name")
 	limitStr := c.Query("limit")
 	pageStr := c.Query("page")
@@ -610,7 +591,9 @@ func listLogos(c *gin.Context) {
 				args2 = append(args2, limit)
 				if pageStr != "" {
 					if page, err := strconv.Atoi(pageStr); err == nil {
-						if page < 1 { page = 1 }
+						if page < 1 {
+							page = 1
+						}
 						offset := (page - 1) * limit
 						limitClause2 += " OFFSET ?"
 						args2 = append(args2, offset)
@@ -643,10 +626,16 @@ func listLogos(c *gin.Context) {
 					&logo.PrimaryFormat,
 					&logo.CreatedAt,
 					&logo.UpdatedAt,
-				); err != nil { continue }
+				); err != nil {
+					continue
+				}
 				logo.HasSVG = hasSVG2 == 1
 				logo.HasPNG = hasPNG2 == 1
-				if logo.HasPNG { logo.LogoURL = fmt.Sprintf("%s/logos/%s?format=png", baseURL, logo.ID) } else if logo.HasSVG { logo.LogoURL = fmt.Sprintf("%s/logos/%s?format=svg", baseURL, logo.ID) }
+				if logo.HasPNG {
+					logo.LogoURL = fmt.Sprintf("%s/logos/%s?format=png", baseURL, logo.ID)
+				} else if logo.HasSVG {
+					logo.LogoURL = fmt.Sprintf("%s/logos/%s?format=svg", baseURL, logo.ID)
+				}
 				nameN := removeDiacritics(strings.ToLower(logo.ClubName))
 				cityN := removeDiacritics(strings.ToLower(logo.ClubCity))
 				if strings.Contains(nameN, normQ) || strings.Contains(cityN, normQ) || strings.Contains(strings.ToLower(logo.ID), strings.ToLower(q)) {
@@ -706,12 +695,22 @@ func uploadLogo(c *gin.Context) {
 
 	if clubName == "" {
 		if club, err := fetchClubByID(id); err == nil && club != nil {
-			if club.Name != "" { clubName = club.Name }
-			if clubType == "" && club.Type != "" { clubType = club.Type }
-			if clubCity == "" && club.City != "" { clubCity = club.City }
-			if clubWebsite == "" && club.Website != "" { clubWebsite = club.Website }
+			if club.Name != "" {
+				clubName = club.Name
+			}
+			if clubType == "" && club.Type != "" {
+				clubType = club.Type
+			}
+			if clubCity == "" && club.City != "" {
+				clubCity = club.City
+			}
+			if clubWebsite == "" && club.Website != "" {
+				clubWebsite = club.Website
+			}
 		}
-		if clubName == "" { clubName = "Club " + id }
+		if clubName == "" {
+			clubName = "Club " + id
+		}
 	}
 
 	// Get uploaded file
